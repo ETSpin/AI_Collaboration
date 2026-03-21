@@ -8,5 +8,6 @@ This project will use [Ruff](https://docs.astral.sh/ruff/) for linting and [Visu
 │   └── settings.json
 ├── src/                  # Source code lives here
 │   └── main.py
-├──pyproject.toml         # Ruff configuration information
+├── pyproject.toml         # Ruff configuration information
+├── .gitignore
 └── README.md             # Project overview
