@@ -9,11 +9,19 @@ AI experimentation with Ollama and Python
 Usage:
 
 """
+from ollama import chat
 
 
 def main():
-    pass
+    messages = [
+        {
+            "role": "user",
+            "content": "funny question, how do I boil an egg",
+        },
+    ]
 
+    response = chat(model="llama3.2:latest", messages=messages)
+    print(response.message.content)
 
 if __name__ == '__main__':
     main()
