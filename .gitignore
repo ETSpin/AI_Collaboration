@@ -1,0 +1,16 @@
+# Python cache and compiled files
+__pycache__/
+*.pyc
+
+# VS Code settings (optional if you want to keep them private)
+#.vscode/
+
+# Virtual environments
+.env/
+venv/
+ENV/
+env/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
