@@ -1,8 +1,7 @@
 {
-  "python.linting.enabled": true,
-  "python.linting.ruffEnabled": true,
   "editor.codeActionsOnSave": {
     "source.fixAll.ruff": "explicit"
   },
-  "ruff.configuration": "pyproject.toml"
+  "ruff.configuration": "pyproject.toml",
+  "python-envs.defaultEnvManager": "ms-python.python:system"
 }
