@@ -16,7 +16,7 @@ def main():
     messages = [
         {
             "role": "user",
-            "content": "funny question, how do I boil an egg",
+            "content": "funny question, can a swallow carry a coconut",
         },
     ]
 
