@@ -11,6 +11,8 @@ Usage:
 TBD...
 
 """
+from ollama import chat
+
 
 class ModelRunner:
     
@@ -20,7 +22,15 @@ class ModelRunner:
 
     """Run a single AI call"""
     def run_single_turn(self, input_text):
-        pass
+        messages = [
+        {
+            "role": "user",
+            "content": input_text,
+        },
+                    ]
+
+        response = chat(model="llama3.2:latest", messages=messages)
+        print(response.message.content)
 
     """What is the AI 'thinking' -- stream it's output token-by-token"""
     def stream_partial_output(self, callback):

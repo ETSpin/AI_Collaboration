@@ -4,7 +4,7 @@ Author: MORS
 Date: 22 MAR 26
 
 Description:
-Here the utility functions for interacting with the Ollama environment - i.e., find out which models are installedm which version is running, etc.
+Here the utility functions for interacting with the Ollama environment - i.e., find out which models are installed which version is running, etc.
 This will be useful from the start  for  development and debugging purposes
 
 Usage:
