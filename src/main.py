@@ -39,7 +39,7 @@ def main():
         response = ollama.chat(model=model_name, messages = conversation)
         aianswer = response.message.content
         print("Jeeves:", aianswer)
-        conversation.append({"role": "system", "content" : aianswer})
+        conversation.append({"role": "assistant", "content" : aianswer})
 
 
 if __name__ == '__main__':
