@@ -4,38 +4,41 @@ Author: MORS
 Date: 22 MAR 26
 
 Description:
-This  class that will hold athe information about the queries - so it becomes an acutal conversation
+This class is a utility that will act on conversation objects
 
 Usage:
 TBD...
 
 """
 
+
 class ConversationManager:
-    
-    """Accept user's input """
-    def accept_user_message(input_message):
+
+    # Accept user's input - will need to flesh this out later -- error checking and the like
+    @staticmethod
+    def add_user_message(conversation, input_message):
+        conversation._messages.append({"role": "user", "content" : input_message})
+
+    # Accept ai's response - will need to flesh this out later -- error checking and the like
+    @staticmethod
+    def add_ai_response(conversation, response):
+        conversation._messages.append({"role": "assistant", "content" : response})
+
+    # Reset or reinitialize the conversation as needed
+    def reset_conversation(self):
         pass
 
-    """Hand the user's input to the mode for a response"""
-    def generate_model_response():
-        pass
+    #Return the model name for this conversation
+    @staticmethod
+    def model(conversation):
+        return conversation.model_name
 
-    """Store the queries - so you can have a conversation"""
-    def store_message(role, content):
-        pass
+    #Set the model name (validation can go here later)
+    @staticmethod
+    def model_set(conversation, new_model):
+        conversation.model_name = new_model
 
-    """Return the current conversation hisotry"""
-    def get_conversation_history():
-        pass
-
-    """Reset or reinitialize the conversation as needed"""
-    def reset_reset_conversation(self):
-        pass
-
-
-
-
-
-
-
+    #Return the conversation history
+    @staticmethod
+    def history(conversation):
+        return conversation.messages
