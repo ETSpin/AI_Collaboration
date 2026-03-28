@@ -11,14 +11,15 @@ Initial examples/research from https://www.cohorte.co/blog/using-ollama-with-pyt
 Usage:
 
 """
-import ollama
+from ollama import chat
 
-#from model_runner import ModelRunner
+from model_runner import ModelRunner
 
 
 def main():
     # Question = ModelRunner()
     model_name = "llama3.2:latest" # I know I downloaded this model
+    runner = ModelRunner()
 
     conversation = [
         {"role":"system", "content":"You are named Jeeves and are a useful helper."},
@@ -26,7 +27,7 @@ def main():
     ]
 
     # This makes the AI model start the conversation
-    response = ollama.chat(model=model_name, messages = conversation)
+    response = chat(model=model_name, messages = conversation)
     print("Jeeves:", response.message.content)
 
     # This is the loop where the actual conversation takes place
@@ -36,10 +37,9 @@ def main():
             break # exit the loop if the user provides a blank input
 
         conversation.append({"role": "user", "content" : user_input})
-        response = ollama.chat(model=model_name, messages = conversation)
-        aianswer = response.message.content
-        print("Jeeves:", aianswer)
-        conversation.append({"role": "assistant", "content" : aianswer})
+        response = runner.run_conversation(model_name, conversation)
+        conversation.append({"role": "assistant", "content" : response})
+        print(response)
 
 
 if __name__ == '__main__':

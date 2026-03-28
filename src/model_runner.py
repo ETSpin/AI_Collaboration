@@ -21,7 +21,7 @@ class ModelRunner:
         pass
 
     """Run a single AI call"""
-    def run_single_turn(self, input_text):
+    def run_single_turn(self, model, input_text):
         messages = [
         {
             "role": "user",
@@ -29,8 +29,14 @@ class ModelRunner:
         },
                     ]
 
-        response = chat(model="llama3.2:latest", messages=messages)
+        response = chat(model, messages=messages)
         print(response.message.content)
+
+    '''Run a multi response conversation'''
+    def run_conversation(self, model, conversation):
+        response = chat(model, messages = conversation)
+        aianswer = response.message.content
+        return aianswer
 
     """What is the AI 'thinking' -- stream it's output token-by-token"""
     def stream_partial_output(self, callback):
