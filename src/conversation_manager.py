@@ -22,7 +22,13 @@ class ConversationManager:
     # Accept ai's response - will need to flesh this out later -- error checking and the like
     @staticmethod
     def add_ai_response(conversation, response):
-        conversation._messages.append({"role": "assistant", "content" : response})
+        conversation._messages.append({"role": "assistant", "content" : response.message.content})
+        conversation.updated_at = response.created_at
+
+
+    @staticmethod
+    def add_ai_metadata(conversation, response):
+        pass
 
     # Reset or reinitialize the conversation as needed
     def reset_conversation(self):

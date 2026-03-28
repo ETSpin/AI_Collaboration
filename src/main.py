@@ -11,6 +11,8 @@ Initial examples/research from https://www.cohorte.co/blog/using-ollama-with-pyt
 Usage:
 
 """
+
+
 from ollama import chat
 
 from conversation import Conversation
@@ -42,7 +44,10 @@ def main():
         manager.add_user_message(conversation, user_input)
         response = runner.run_conversation(conversation.model_name, conversation.messages)
         manager.add_ai_response(conversation, response)
-        print("Jeeves:", response)
+        print("Jeeves:", response.message.content)
+
+        print(conversation)
+
 
 
 if __name__ == '__main__':

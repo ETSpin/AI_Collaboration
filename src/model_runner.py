@@ -33,10 +33,9 @@ class ModelRunner:
         print(response.message.content)
 
     '''Run a multi response conversation'''
-    def run_conversation(self, model, conversation):
-        response = chat(model, messages = conversation)
-        aianswer = response.message.content
-        return aianswer
+    def run_conversation(self, model, messages):
+        response = chat(model, messages)
+        return response
 
     """What is the AI 'thinking' -- stream it's output token-by-token"""
     def stream_partial_output(self, callback):

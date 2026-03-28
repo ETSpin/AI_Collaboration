@@ -10,6 +10,8 @@ messages, model name, and other data for each conversation
 Usage:
 As a container class, I am exposing the 
 """
+from datetime import datetime, timezone
+
 
 class Conversation:
     
@@ -17,12 +19,12 @@ class Conversation:
     def __init__(self, model_name, messages=None):
         self._model_name = model_name
         self._messages = messages if messages is not None else []
-        
+        self._created_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
         self._conversation_id = None
-        self._persona = None
-        self._created_at = None
+        self._persona = None # This will set the model's temperature sampling parameter (low is more literal, high is more creative)
         self._updated_at = None
-        self._metadata = {}
+        self._metadata = []
         self._token_count = 0
         self._title = None #(summary of the conversation)
 
@@ -90,3 +92,28 @@ class Conversation:
     # Returns the number of "turns" in the conversation
     def __len__(self):
         return len(self.messages)
+
+    # Basic printout for a conversation object
+    def __str__(self):
+        lines = []
+        lines.append(f"Conversation(model='{self._model_name}')")
+        lines.append(f"  created_at: {self._created_at}")
+        lines.append(f"  updated_at: {self._updated_at}")
+        lines.append(f"  persona: {self._persona}")
+        lines.append(f"  title: {self._title}")
+        lines.append(f"  turns: {len(self._messages)}")
+        lines.append("  messages:")
+
+        # Show each message in a compact, readable way
+        for i, msg in enumerate(self._messages, start=1):
+            role = msg.get("role", "unknown")
+            content = msg.get("content", "")
+
+            # Truncate long content for readability
+            preview = content
+            if isinstance(content, str) and len(content) > 80:
+                preview = content[:77] + "..."
+
+            lines.append(f"    {i}. {role}: {preview}")
+
+        return "\n".join(lines)
