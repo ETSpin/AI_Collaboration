@@ -31,20 +31,67 @@ class ConversationManager:
         pass
 
     # Reset or reinitialize the conversation as needed
-    def reset_conversation(self):
+    @staticmethod
+    def reset_conversation(conversation):
         pass
 
     #Return the model name for this conversation
     @staticmethod
-    def model(conversation):
+    def get_model(conversation):
         return conversation.model_name
 
     #Set the model name (validation can go here later)
     @staticmethod
-    def model_set(conversation, new_model):
+    def set_model(conversation, new_model):
         conversation.model_name = new_model
 
     #Return the conversation history
     @staticmethod
     def history(conversation):
         return conversation.messages
+    
+    #Return the persona (temperature) for this conversation
+    @staticmethod
+    def get_temperature(conversation):
+        return conversation.persona
+    
+    #Set the persona (temperature) for this conversation
+    @staticmethod
+    def set_temperature(conversation, value):
+        conversation.persona = value
+
+    #Return the overview of this conversation
+    @staticmethod
+    def get_conversation_info(conversation):
+        return str(conversation)
+    
+    #Return the available models - this is spawned as a subprocess to get to the Ollama Cli
+    #Subprocess is imported here because we won't use it that often (if ever) so this saves some space
+    @staticmethod
+    def get_available_models():
+        import subprocess
+
+        try:
+            result = subprocess.run(
+                ["ollama", "list"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+
+            lines = result.stdout.strip().split("\n")
+            models = []
+
+            # Skip header line
+            for line in lines[1:]:
+                parts = line.split()
+                if parts:
+                    models.append(parts[0])  # model name
+
+            return models
+
+        except Exception as e:
+            return(f"Error retrieving model list: {e}")
+
+
+

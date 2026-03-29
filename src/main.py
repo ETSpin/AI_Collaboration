@@ -11,10 +11,9 @@ Initial examples/research from https://www.cohorte.co/blog/using-ollama-with-pyt
 Usage:
 
 """
-
-
 from ollama import chat
 
+import dispatcher
 from conversation import Conversation
 from conversation_manager import ConversationManager
 from model_runner import ModelRunner
@@ -40,14 +39,13 @@ def main():
         user_input = input("User: ")
         if not user_input:
             break # exit the loop if the user provides a blank input
-
-        manager.add_user_message(conversation, user_input)
-        response = runner.run_conversation(conversation.model_name, conversation.messages)
-        manager.add_ai_response(conversation, response)
-        print("Jeeves:", response.message.content)
-
-        print(conversation)
-
+        elif not user_input[0] == "/":
+            manager.add_user_message(conversation, user_input)
+            response = runner.run_conversation(conversation.model_name, conversation.messages)
+            manager.add_ai_response(conversation, response)
+            print("Jeeves:", response.message.content)
+        else:
+            dispatcher.dispatch(user_input[1:], conversation)
 
 
 if __name__ == '__main__':

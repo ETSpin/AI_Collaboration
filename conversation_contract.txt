@@ -1,0 +1,178 @@
+This was AI generated to talk about the 
+
+CONVERSATION OBJECT CONTRACT
+============================
+
+This document defines the structure, responsibilities, and behavioral rules
+of the Conversation object. It ensures consistent behavior across the
+ConversationManager, dispatcher, CLI, and future GUI layers.
+
+The Conversation object is the single source of truth for all state related
+to the current interaction with the model.
+
+------------------------------------------------------------
+1. PURPOSE
+------------------------------------------------------------
+
+The Conversation object stores:
+- model configuration
+- conversation history
+- system-level settings
+- runtime parameters
+
+It must provide a stable interface for reading and mutating state.
+
+No other module should directly modify internal fields without using the
+Conversation object's methods.
+
+------------------------------------------------------------
+2. REQUIRED FIELDS
+------------------------------------------------------------
+
+The Conversation object must contain the following fields:
+
+model_name
+    String. The name of the model currently in use.
+
+temperature
+    Numeric. Controls model sampling behavior.
+
+system_prompt
+    String. The system-level instruction given to the model.
+
+messages
+    List of message objects. Each message object contains:
+        - role: "user", "assistant", or "system"
+        - content: string
+
+metadata (optional)
+    Dictionary for additional runtime or debugging information.
+
+These fields define the complete state of a conversation.
+
+------------------------------------------------------------
+3. MESSAGE STRUCTURE
+------------------------------------------------------------
+
+Each message in the "messages" list must follow this structure:
+
+    {
+        "role": <string>,
+        "content": <string>
+    }
+
+Valid roles:
+    user
+    assistant
+    system
+
+No other roles are permitted.
+
+Messages must be appended in chronological order.
+
+------------------------------------------------------------
+4. REQUIRED METHODS
+------------------------------------------------------------
+
+The Conversation object must provide the following methods:
+
+get_temperature()
+    Returns the current temperature value.
+
+set_temperature(value)
+    Validates and sets the temperature.
+    Must reject non-numeric values.
+
+get_model()
+    Returns the current model name.
+
+set_model(name)
+    Sets the model name.
+    Must reject empty or invalid names.
+
+get_system_prompt()
+    Returns the system prompt.
+
+set_system_prompt(text)
+    Sets the system prompt.
+    Must reject non-string values.
+
+get_messages()
+    Returns the full message history.
+
+add_message(role, content)
+    Appends a new message.
+    Must validate role and content.
+
+reset()
+    Clears all messages.
+    Restores default model, temperature, and system prompt.
+
+These methods define the public interface for all state access and mutation.
+
+------------------------------------------------------------
+5. INVARIANTS
+------------------------------------------------------------
+
+The Conversation object must enforce the following invariants:
+
+- temperature is always numeric
+- model_name is always a non-empty string
+- system_prompt is always a string
+- messages is always a list
+- each message has a valid role and string content
+- no external module may modify internal fields directly
+
+If an invariant is violated, the method must reject the change.
+
+------------------------------------------------------------
+6. ERROR SEMANTICS
+------------------------------------------------------------
+
+All methods must fail predictably:
+
+- Invalid role → "Invalid role: <role>"
+- Invalid temperature → "Temperature must be numeric"
+- Invalid model name → "Model name must be a non-empty string"
+- Invalid system prompt → "System prompt must be a string"
+- Invalid message content → "Message content must be a string"
+
+Errors must be raised or returned consistently depending on the design
+choice of the ConversationManager.
+
+------------------------------------------------------------
+7. OUTPUT RULES
+------------------------------------------------------------
+
+The Conversation object itself should not print anything.
+
+All printing is handled by:
+- dispatcher
+- ConversationManager
+- CLI layer
+
+The Conversation object is a pure data model.
+
+------------------------------------------------------------
+8. MUTATION RULES
+------------------------------------------------------------
+
+Only the following methods may mutate state:
+- set_temperature
+- set_model
+- set_system_prompt
+- add_message
+- reset
+
+No other mutation paths exist - when changed, this needs to be updated.
+
+------------------------------------------------------------
+9. THREAD SAFETY (FUTURE CONSIDERATION)
+------------------------------------------------------------
+
+If the GUI introduces background threads for model calls, the Conversation
+object may require locking or synchronization.
+
+This is not required now but should be considered in future design.
+
+------------------------------------------------------------

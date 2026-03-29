@@ -11,14 +11,13 @@ the appropriate subsystems such as ingestion, analysis, or formatting.
 Usage:
 Imported by main.py or executed indirectly 
 """
-
 import argparse
 
 
-    # Parses command-line arguments - Returns: argparse.Namespace: Parsed arguments containing user-specified options
+# Parses command-line arguments - Returns: argparse.Namespace: Parsed arguments containing user-specified options
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="AdvisorAIDesk: AI-assisted stock research and analysis."
+        description="AI agent locally using Ollama and downloaded models."
     )
 
     parser.add_argument(

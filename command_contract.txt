@@ -1,0 +1,171 @@
+This was AI generated to explain the functions and their relationships for the CLI
+
+COMMAND CONTRACT
+================
+
+This document defines the behavioral rules for all CLI commands.
+It ensures consistent behavior across the dispatcher, ConversationManager,
+and future GUI layers.
+
+------------------------------------------------------------
+1. GRAMMAR
+------------------------------------------------------------
+
+All commands follow the structure:
+
+    /<verb> <noun> [value]
+
+- verb determines the action
+- noun determines the target
+- value is optional and only used by verbs that mutate state
+
+Commands are currently case-insensitive.
+
+------------------------------------------------------------
+2. VERBS
+------------------------------------------------------------
+
+GET
+---
+Purpose: Retrieve a single piece of conversation or model state.
+Grammar: /get <noun>
+Side effects: None
+External calls: None
+
+Valid nouns:
+    temp
+    model
+    system_prompt
+    history
+
+Behavior:
+- Returns exactly one line of output, except for "history"
+- Ignores extra arguments
+- Never mutates state
+
+Errors:
+- Missing noun: "get requires a target"
+- Unknown noun: "Unknown target for get: <noun>"
+
+------------------------------------------------------------
+
+SET
+---
+Purpose: Mutate conversation or model configuration.
+Grammar: /set <noun> <value>
+Side effects: Updates Conversation object
+External calls: None
+
+Valid nouns:
+    temp
+    model
+    system_prompt
+
+Behavior:
+- Requires a value
+- Validates type (e.g., temp must be numeric)
+- Prints confirmation or updated value
+
+Errors:
+- Missing noun: "set requires a target"
+- Missing value: "set <noun> requires a value"
+- Unknown noun: "Unknown target for set: <noun>"
+- Invalid value: "Invalid value for <noun>: <value>"
+
+------------------------------------------------------------
+
+SHOW
+----
+Purpose: Display external or environment information.
+Grammar: /show <noun>
+Side effects: May call external systems (e.g., Ollama CLI)
+
+Valid nouns:
+    models
+    info
+    running
+
+Behavior:
+- Prints multi-line output
+- Never mutates conversation state
+
+Errors:
+- Missing noun: "show requires a target"
+- Unknown noun: "Unknown target for show: <noun>"
+- External failure: "Unable to retrieve <noun>"
+
+------------------------------------------------------------
+
+RESET
+-----
+Purpose: Reset the conversation to its initial state.
+Grammar: /reset
+Side effects: Clears messages, restores defaults
+
+Behavior:
+- No arguments allowed
+- Prints confirmation
+
+Errors:
+- Extra arguments: "reset does not take arguments"
+
+------------------------------------------------------------
+
+HELP
+----
+Purpose: Display available commands.
+Grammar: /help
+Side effects: None
+
+Behavior:
+- Prints formatted list of verbs and nouns
+- No arguments allowed
+
+Errors:
+- Extra arguments: "help does not take arguments"
+
+------------------------------------------------------------
+3. NOUN NAMESPACE
+------------------------------------------------------------
+
+GET nouns:
+    temp
+    model
+    system_prompt
+    history
+
+SET nouns:
+    temp
+    model
+    system_prompt
+
+SHOW nouns:
+    models
+    info
+    running
+
+These lists are authoritative and must be updated when new features are added.
+
+------------------------------------------------------------
+4. ERROR SEMANTICS (GLOBAL)
+------------------------------------------------------------
+
+All commands must follow these rules:
+
+- Unknown verb: "Unknown command: <verb>"
+- Unknown noun: "Unknown target for <verb>: <noun>"
+- Missing required value: "<verb> <noun> requires a value"
+- Extra arguments: "<verb> does not take arguments"
+- External failures: "Unable to retrieve <noun>"
+
+------------------------------------------------------------
+5. OUTPUT RULES
+------------------------------------------------------------
+
+- get: one line (except history)
+- set: one line confirmation
+- show: multi-line allowed
+- reset: one line
+- help: multi-line
+
+No command should ever print Python objects or "None".
