@@ -13,6 +13,7 @@ TBD...
 
 #import json
 import subprocess
+import urllib.request
 
 
 class ConversationManager:
@@ -94,19 +95,16 @@ class ConversationManager:
     def get_available_models():
         
         try:
-            result = subprocess.run(
-                ["curl", "-s", "https://ollama.com/library"],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            
-            #raw_json = result.stdout
-            #data = json.loads(raw_json)
-            #cleaned_text = json.dumps(data, indent=2)
+            url = "https://ollama.com/library"
 
-            return result
+        # Fetch raw bytes from the URL
+            with urllib.request.urlopen(url) as response:
+                raw_bytes = response.read()
 
+        # Decode as UTF‑8 safely
+            html = raw_bytes.decode("utf-8", errors="replace")
+            return html
+           
         except Exception as e:
             return(f"Error retrieving model list: {e}")
 
