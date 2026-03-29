@@ -11,6 +11,9 @@ TBD...
 
 """
 
+#import json
+import subprocess
+
 
 class ConversationManager:
 
@@ -65,11 +68,11 @@ class ConversationManager:
     def get_conversation_info(conversation):
         return str(conversation)
     
-    #Return the available models - this is spawned as a subprocess to get to the Ollama Cli
+    
+    #Return the downloaded models - this is spawned as a subprocess to get to the Ollama Cli
     #Subprocess is imported here because we won't use it that often (if ever) so this saves some space
     @staticmethod
-    def get_available_models():
-        import subprocess
+    def get_downloaded_models():
 
         try:
             result = subprocess.run(
@@ -79,19 +82,49 @@ class ConversationManager:
                 check=True
             )
 
-            lines = result.stdout.strip().split("\n")
-            models = []
+            return result.stdout
 
-            # Skip header line
-            for line in lines[1:]:
-                parts = line.split()
-                if parts:
-                    models.append(parts[0])  # model name
+        except Exception as e:
+            return(f"Error retrieving model list: {e}")
+        
+    
+    #Return the models available to be downloaded
+    #It comes down as a mess of json -- thanks to AI for the json cleaner
+    @staticmethod
+    def get_available_models():
+        
+        try:
+            result = subprocess.run(
+                ["curl", "-s", "https://ollama.com/library"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            
+            #raw_json = result.stdout
+            #data = json.loads(raw_json)
+            #cleaned_text = json.dumps(data, indent=2)
 
-            return models
+            return result
 
         except Exception as e:
             return(f"Error retrieving model list: {e}")
 
 
+    #Return the models available to be downloaded - this is spawned as a subprocess to get to the Ollama Cli
+    @staticmethod
+    def get_running_models():
+        
+        try:
+            result = subprocess.run(
+                ["ollama", "ps"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+
+            return result.stdout
+
+        except Exception as e:
+            return(f"Error retrieving model list: {e}")
 

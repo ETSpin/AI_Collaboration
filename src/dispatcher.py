@@ -45,9 +45,9 @@ key_words = {
         "description": "Show features from the Ollama CLI",
         "args": 
         [
-            {"flags": ["what"], "options": {"choices" : ["models"], "help": "Showw a list of the available models"}},
+            {"flags": ["what"], "options": {"choices" : ["downloaded", "available", "running"], "help": "Show downloaded models, models available to download, and running models"}},
         ],
-        "handler": lambda args: available_models()
+        "handler": lambda args: show_model_info(args.what)
     },
 
         "reset":
@@ -107,8 +107,15 @@ def update(attribute, value, conversation):
         print(f"Unknown attribute: {attribute}")
 
 
-def available_models():
-    print(cm.get_available_models())
+def show_model_info(attribute):
+    if attribute == "available":
+        print(cm.get_available_models())
+    
+    elif attribute == "downloaded":
+        print(cm.get_downloaded_models())
+
+    elif attribute == "running":
+        print(cm.get_running_models())
 
 
 def help_command():
