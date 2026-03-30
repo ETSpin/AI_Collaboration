@@ -17,6 +17,7 @@ import argparse
 import shlex
 
 from conversation_manager import ConversationManager as cm
+from utils import Utils as utils
 
 key_words = {
     "get": 
@@ -50,7 +51,27 @@ key_words = {
         "handler": lambda args: show_model_info(args.what)
     },
 
-        "reset":
+    "install":
+    {
+        "description": "Download and install an AI model from the Ollama website",
+        "args": 
+        [
+            {"flags": ["what"], "options": {"help": "Downloads and installs a model through the Ollama CLI"}},
+        ],
+        "handler": lambda args: install_model(args.what)
+    },
+
+    "uninstall":
+    {
+        "description": "Uninstalls an AI model from the local system",
+        "args": 
+        [
+            {"flags": ["what"], "options": {"help": "Uninstalls an installed model through the Ollama CLI"}},
+        ],
+        "handler": lambda args: uninstall_model(args.what)
+    },
+
+    "reset":
     {
         "description": "Resets the current conversation",
         "args": [],
@@ -116,6 +137,16 @@ def show_model_info(attribute):
 
     elif attribute == "running":
         print(cm.get_running_models())
+
+
+def install_model(attribute):
+        utils.install_ollama_model(attribute)
+        print(cm.get_downloaded_models())
+
+
+def uninstall_model(attribute):
+        utils.uninstall_ollama_model(attribute)
+        print(cm.get_downloaded_models())
 
 
 def help_command():
