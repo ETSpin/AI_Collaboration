@@ -56,12 +56,19 @@ def main():
     }
 ]
 
-    conversation = Conversation("deepseek-coder-v2:16b-lite-instruct-q4_0",start_conversation) 
+    conversation = Conversation("deepseek-coder-v2:16b-lite-instruct-q4_0",start_conversation, 
+                                {
+                                    "num_ctx": 32768,   # full 160K context window
+                                    "temperature": 0.2,  # precise, deterministic coding behavior
+                                    "top_p": 0.9,        # keeps output stable but not rigid
+                                    "repeat_penalty": 1.1  # reduces looping or repeated lines
+                                }
+                                )
     runner = ModelRunner()
     manager = ConversationManager()
 
     # This makes the AI model start the conversation
-    response = chat(conversation.model_name, conversation.messages)
+    response = chat(model=conversation.model_name, messages=conversation.messages, options=conversation.options)
     print("Jeeves:", response.message.content)
 
     # This is the loop where the actual conversation takes place
@@ -71,7 +78,7 @@ def main():
             break # exit the loop if the user provides a blank input
         elif not user_input[0] == "/":
             manager.add_user_message(conversation, user_input)
-            response = runner.run_conversation(conversation.model_name, conversation.messages)
+            response = runner.run_conversation(model=conversation.model_name, messages=conversation.messages, options=conversation.options)
             manager.add_ai_response(conversation, response)
             print("Jeeves:", response.message.content)
         else:

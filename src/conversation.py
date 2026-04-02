@@ -16,10 +16,11 @@ from datetime import datetime, timezone
 class Conversation:
     
     # Initiates a conversation object
-    def __init__(self, model_name, messages=None):
+    def __init__(self, model_name, messages=None, model_options=None):
         self._model_name = model_name
         self._messages = messages if messages is not None else []
         self._created_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        self._options = model_options
 
         self._conversation_id = None
         self._persona = None # This will set the model's temperature sampling parameter (low is more literal, high is more creative)
@@ -27,6 +28,7 @@ class Conversation:
         self._metadata = []
         self._token_count = 0
         self._title = None #(summary of the conversation)
+        
 
     @property
     def model_name(self):
@@ -40,6 +42,15 @@ class Conversation:
     @property
     def messages(self):
         return self._messages
+
+    @property
+    def options(self):
+        return self._options
+
+    @options.setter
+    def persona(self, value):
+        self._options = value
+
 
     @property
     def persona(self):
