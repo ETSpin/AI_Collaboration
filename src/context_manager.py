@@ -53,9 +53,10 @@ class ContextManager:
 
     
     # Create and return a fully-initialized Conversation object based on the selected personality profile.
-    def start_conversation(self, persona_name: str):
+    @staticmethod
+    def start_conversation(persona_name: str):
         # Gets the personality profile from the dictionary of personalities -- returns an error it doesn't exist
-        persona = self.personalities.get(persona_name)
+        persona = ContextManager.personalities.get(persona_name)
         if persona is None:
             raise ValueError(f"Unknown personality: {persona_name}")
 
@@ -105,9 +106,7 @@ class ContextManager:
         system_msg["content"] += "\n\n" + block["contents"]
         conversation.messages[0] = system_msg
     
-    
-    
-    
+       
     """Accept user's file input """
     def accept_file_upload(self, input_file):
         pass

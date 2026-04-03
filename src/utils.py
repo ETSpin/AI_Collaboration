@@ -69,3 +69,7 @@ class Utils:
 
         except Exception as e:
             return f"Error uninstalling model: {e}"
+        
+    @staticmethod
+    def generate_conv_id():
+        pass

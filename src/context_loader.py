@@ -115,7 +115,8 @@ class ContextLoader:
             return None
 
     #  Read a file, chunk it if necessary, format each chunk, and inject into the conversation as system messages
-    def file_to_context(self, conversation, path, max_chunk_size=8000):
+    @staticmethod
+    def file_to_context(conversation, path, max_chunk_size=8000):
         file_path = Path(path)
 
         if not file_path.exists() or not file_path.is_file():
@@ -132,14 +133,14 @@ class ContextLoader:
 
         try:
             if file_size <= max_chunk_size:
-                block = self.build_context_block(file_path, file_contents)
+                block = ContextLoader.build_context_block(file_path, file_contents)
                 if block:
                     ContextManager.inject_context(conversation, block)
                 return True
             else:
-                chunks = self.chunk_file(file_contents, max_chunk_size)
+                chunks = ContextLoader.chunk_file(file_contents, max_chunk_size)
                 for chunk in chunks:
-                    block = self.build_context_block(file_path, chunk)
+                    block = ContextLoader.build_context_block(file_path, chunk)
                     if block:
                         ContextManager.inject_context(conversation, block)
             return True
@@ -149,7 +150,8 @@ class ContextLoader:
             return False
     
     #  Loading an entire directory structure into the context of a conversation
-    def directory_to_context(self, conversation, path, max_chunk_size=8000):
+    @staticmethod
+    def directory_to_context(conversation, path, max_chunk_size=8000):
         root = Path(path)
         
         if not root.exists() or not root.is_dir():
@@ -160,7 +162,7 @@ class ContextLoader:
             for file_path in root.rglob("*"):
                 if file_path.is_file():
                     if file_path.suffix.lower() in {".py", ".txt", ".md"}:
-                        self.file_to_context(conversation, file_path.as_posix(), max_chunk_size)
+                        ContextLoader.file_to_context(conversation, file_path.as_posix(), max_chunk_size)
 
             return True
         except Exception as e:

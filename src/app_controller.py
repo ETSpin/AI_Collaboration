@@ -15,30 +15,50 @@ import dispatcher
 from context_manager import ContextManager
 from conversation_manager import ConversationManager
 from model_runner import ModelRunner
+from utils import Utils
 
 
 class AppController:
     
     # AppController object initator 
     def __init__(self):
-        self.context = ContextManager()
-        self.conversation_manager = ConversationManager()
-        self.runner = ModelRunner()
-        self.conversation = None
+        self._conversations = {}
+        self._active_conversation_id = None
+
+    @property
+    def conversations(self):
+        return self._conversations
+    
+    @property
+    def active_conversation_id(self):
+        return self._active_conversation_id
+    
+    @active_conversation_id.setter
+    def active_conversation_id(self, value):
+        self._active_conversation_id = value
+    
+    @property
+    def active_conversation(self):
+        return self._conversations.get(self._active_conversation_id)
 
     # Initialize a new conversation with the selected persona
     def app_start(self, persona_name: str = "pymetheus"):
-        self.conversation = self.context.start_conversation(persona_name)
+        conversation = ContextManager.start_conversation(persona_name) 
+        conv_id = Utils.generate_conv_id() # need to write this
+
+        self.conversations[conv_id] = conversation #shouldn't this be appended - so you have a running dict of the conversations?
+        self.active_conversation_id = conv_id
+        #return conv_id
 
         # First model response (persona introduction)
-        response = self.runner.run_conversation(
-            model=self.conversation.model_name,
-            messages=self.conversation.messages,
-            options=self.conversation.options
+        response = ModelRunner.run_conversation(
+            model=conversation.model_name,
+            messages=conversation.messages,
+            options=conversation.options
         )
 
-        self.conversation_manager.add_ai_response(self.conversation, response)
-        print(f"{self.conversation.persona.capitalize()}:", response.message.content)
+        ConversationManager.add_ai_response(conversation, response)
+        print(f"{conversation.persona.capitalize()}:", response.message.content)
 
     # Main loop for user interaction
     def app_repl(self):
@@ -48,22 +68,28 @@ class AppController:
             if not user_input:
                 break  # exit on blank input
 
-            # Slash commands
+            conv = self.active_conversation
+
+            # Slash and Dash commands
             if user_input.startswith("/"):
-                dispatcher.dispatch(user_input[1:], self.conversation)
+                dispatcher.system_dispatch(user_input[1:], conv)
+                continue
+
+            if user_input.startswith("-"):
+                dispatcher.conversation_dispatch(user_input[1:], conv)
                 continue
 
             # Normal user message
-            self.conversation_manager.add_user_message(self.conversation, user_input)
+            ConversationManager.add_user_message(conv, user_input)
 
-            response = self.runner.run_conversation(
-                model=self.conversation.model_name,
-                messages=self.conversation.messages,
-                options=self.conversation.options
+            response = ModelRunner.run_conversation(
+                model=conv.model_name,
+                messages=conv.messages,
+                options=conv.options
             )
 
-            self.conversation_manager.add_ai_response(self.conversation, response)
-            print(f"{self.conversation.persona.capitalize()}:", response.message.content)
+            ConversationManager.add_ai_response(conv, response)
+            print(f"{conv.persona.capitalize()}:", response.message.content)
 
     # Entry point for the application 
     def app_run(self):

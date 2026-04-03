@@ -21,7 +21,8 @@ class ModelRunner:
         pass
 
     """Run a single AI call"""
-    def run_single_turn(self, model, input_text):
+    @staticmethod
+    def run_single_turn(model, input_text):
         messages = [
         {
             "role": "user",
@@ -33,7 +34,8 @@ class ModelRunner:
         print(response.message.content)
 
     '''Run a multi response conversation'''
-    def run_conversation(self, model, messages, options):
+    @staticmethod
+    def run_conversation(model, messages, options):
         response = chat(model=model, messages=messages, options=options)
         return response
 
