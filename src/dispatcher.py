@@ -16,7 +16,7 @@ Usage:
 import argparse
 import shlex
 
-from conversation_manager import ConversationManager as cm
+from conversation_manager import ConversationManager
 from utils import Utils as utils
 
 key_words = {
@@ -75,7 +75,7 @@ key_words = {
     {
         "description": "Resets the current conversation",
         "args": [],
-        "handler": lambda args: cm.reset_conversation(args.conversation)
+        "handler": lambda args: ConversationManager.reset_conversation(args.conversation)
     },
 
     "help": {
@@ -105,13 +105,13 @@ def dispatch(cmd, conversation):
     
 def display(attribute, conversation):
     if attribute == "model":
-        print(cm.get_model(conversation))
+        print(ConversationManager.get_model(conversation))
 
     elif attribute == "conversation":
-        print(cm.get_conversation_info(conversation))
+        print(ConversationManager.get_conversation_info(conversation))
 
     elif attribute == "temp":
-        print(cm.get_temperature(conversation))
+        print(ConversationManager.get_temperature(conversation))
 
     else:
         print(f"Unknown attribute: {attribute}")
@@ -119,10 +119,10 @@ def display(attribute, conversation):
 
 def update(attribute, value, conversation):
     if attribute == "model":
-        cm.set_model(conversation, value)
+        ConversationManager.set_model(conversation, value)
 
     elif attribute == "temp":
-        cm.set_temperature(conversation, value)
+        ConversationManager.set_temperature(conversation, value)
 
     else:
         print(f"Unknown attribute: {attribute}")
@@ -130,18 +130,18 @@ def update(attribute, value, conversation):
 
 def show_model_info(attribute):
     if attribute == "available":
-        print(cm.get_available_models())
+        print(ConversationManager.get_available_models())
     
     elif attribute == "downloaded":
-        print(cm.get_downloaded_models())
+        print(ConversationManager.get_downloaded_models())
 
     elif attribute == "running":
-        print(cm.get_running_models())
+        print(ConversationManager.get_running_models())
 
 
 def install_model(attribute):
         utils.install_ollama_model(attribute)
-        print(cm.get_downloaded_models())
+        print(ConversationManager.get_downloaded_models())
 
 
 def uninstall_model(attribute):

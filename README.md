@@ -7,6 +7,7 @@ This project will use [Ruff](https://docs.astral.sh/ruff/) for linting and [Visu
 ├── .vscode/              # VS Code workspace settings
 │   └── settings.json
 ├── src/                  # Source code lives here
+    └── app_controller.py
     └── cli.py
     └── config_manager.py
     └── context_manager.py
@@ -23,3 +24,30 @@ This project will use [Ruff](https://docs.astral.sh/ruff/) for linting and [Visu
 ├── pyproject.toml        # Ruff configuration information
 ├── .gitignore
 └── README.md             # Project overview
+
+
+
+
+
+
+                          ┌──────────────────────┐
+                          │     AppController    │
+                          │ (orchestrates flow)  │
+                          └──────────┬───────────┘
+                                     │
+     ┌───────────────────────────────┼───────────────────────────────┐
+     │                               │                               │
+     ▼                               ▼                               ▼
+┌──────────────────┐             ┌───────────────────┐            ┌────────────────┐
+│ContextManager    │             │ConversationManager│            │  ModelRunner   │
+│(builds initial   │             │ (manages state)   │            │ (executes model│
+│initial context   │             │                   │            │    calls)      │
+│and conversation) │             └────────────────┬──┘            └────────────────┘
+└──────┬───────────┘                              │
+       │                                          │
+       ▼                                          ▼
+┌────────────────┐                     ┌───────────────┐
+│  Conversation  │ <------------------ │   Dispatcher  │
+│  (data object) │   (commands modify  │  (/commands)  │
+└────────────────┘     conversation)   └───────────────┘
+

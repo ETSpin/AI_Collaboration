@@ -23,7 +23,7 @@ class ContextManager:
                                  },
                      "pymetheus": {"prompt": "Pymetheus:", "model": "deepseek-coder-v2:16b-lite-instruct-q4_0",
             "personality": (
-            "Your name is Jeeves. You are a precise, reliable Python development assistant "
+            "Your name is Pymetheus. You are a precise, reliable Python development assistant "
             "embedded inside a custom REPL. Your primary job is to help the user design, "
             "extend, refactor, and debug their Python codebase.\n\n"
 
@@ -97,7 +97,13 @@ class ContextManager:
 
         return conversation
 
-    
+    # This fucntion updates the starting conversation from the system with new context
+    # This should prevent issues with adding system context after starting a conversation
+    @staticmethod
+    def inject_context(conversation, block):
+        system_msg = conversation.messages[0]
+        system_msg["content"] += "\n\n" + block["contents"]
+        conversation.messages[0] = system_msg
     
     
     
