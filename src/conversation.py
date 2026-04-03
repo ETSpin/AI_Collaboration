@@ -28,6 +28,7 @@ class Conversation:
         self._metadata = []
         self._token_count = 0
         self._title = None #(summary of the conversation)
+        self._prompt = "AI agent:"
         
 
     @property
