@@ -17,11 +17,11 @@ from conversation import Conversation
 
 class ContextManager:
 
-    personalities = { "jeeves": {"prompt": "Jeeves:", "model": "", "personality": "", "rules": "", "num_ctx": "", "temperature": .7, "top_p": "", "top_k": "", "repeat_penalty": "", 
+    personalities = { "jeeves": {"prompt": "Jeeves:", "model": "llama3.2:latest", "personality": "", "rules": "", "num_ctx": "", "temperature": .7, "top_p": "", "top_k": "", "repeat_penalty": "", 
                                  "description": "Jeeves is a polished, reliable conversational aide who provides structured, thoughtful guidance while maintaining a calm, "
                                  "professional tone throughout the interaction."
                                  },
-                     "pymetheus": {"prompt": "Pymetheus:", "model": "deepseek-coder-v2:16b-lite-instruct-q4_0",
+                     "pymetheus": {"prompt": "Pymetheus:", "model": "llama3.1:8b",
             "personality": (
             "Your name is Pymetheus. You are a precise, reliable Python development assistant "
             "embedded inside a custom REPL. Your primary job is to help the user design, "
@@ -46,7 +46,7 @@ class ContextManager:
 
             "Always ask for clarification if the request is ambiguous or if you need more "
             "context to produce correct code."),
-            "rules": "", "num_ctx": 32768, "temperature": 0.2, "top_p": 0.9, "top_k": "", "repeat_penalty": 1.1, 
+            "rules": "", "num_ctx": 8192, "temperature": 0.2, "top_p": 0.9, "top_k": "", "repeat_penalty": 1.1, 
             "description": "Pymetheus is a precise, methodical Python engineering assistant designed to reason deeply "
             "about architecture, refactoring, and multi-file codebases with clarity and discipline."}, 
     }

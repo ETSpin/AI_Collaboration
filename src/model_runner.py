@@ -7,7 +7,7 @@ Description:
 This  class that will hold all of the model interactions between Ollama and Python.
 - will handle single turn or streaming output (conversations in Ollama are basically single_turn, with history reloaded)
 
-Usage:
+Responsibilities:
 TBD...
 
 """

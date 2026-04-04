@@ -7,8 +7,11 @@ Description:
 Here the utility functions for interacting with the Ollama environment - i.e., find out which models are installed which version is running, etc.
 This will be useful from the start  for  development and debugging purposes
 
-Usage:
-TBD...
+Responsibilities:
+- Small, generic helpers that do not belong to any subsystem
+- No model logic
+- No conversation logic
+
 """
 
 import subprocess

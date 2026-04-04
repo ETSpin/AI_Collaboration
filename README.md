@@ -10,6 +10,7 @@ This project will use [Ruff](https://docs.astral.sh/ruff/) for linting and [Visu
     └── app_controller.py
     └── cli.py
     └── config_manager.py
+    └── context_loader.py
     └── context_manager.py
     └── conversation_manager.py
     └── conversation.py

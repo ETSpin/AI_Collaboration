@@ -10,14 +10,20 @@ Description:
     The dispatcher is intentionally lightweight and modular. Each command handler is responsible for validating its own arguments and flags,
     enforcing defaults, and returning a human-readable response string suitable for display in the GUI output window.
 
-Usage:
+Responsibilities:
     TBD...
+
+--- Needs to be refactored to clean up repeat code between system and conversation commands 
 """
 import argparse
+import os
 import shlex
+import subprocess
+import time
 
 from context_loader import ContextLoader
 from conversation_manager import ConversationManager
+from runtime_monitor import RuntimeMonitor
 from utils import Utils as utils
 
 system_key_words = {
@@ -70,6 +76,16 @@ system_key_words = {
             {"flags": ["what"], "options": {"help": "Uninstalls an installed model through the Ollama CLI"}},
         ],
         "handler": lambda args: system_uninstall_model(args.what)
+    },
+
+    "stats": 
+    {
+        "description": "Display system resource usage (CPU, memory, GPU, VRAM, or live feed)",
+        "args": 
+        [
+            {"flags": ["what"], "options": {"choices": ["cpu", "memory", "gpu", "vram", "all", "live"],"help": "Which system statistic(s) to display"}},
+        ],
+    "handler": lambda args: system_show_stats(args.what)
     },
 
     "reset":
@@ -146,6 +162,56 @@ def system_help_command():
     print ("Overview of Possible Commands")
     for cmd_word in system_key_words:
         print(f"{cmd_word} - ", system_key_words[cmd_word]["description"])
+
+def system_show_stats(attribute):
+    if attribute == "cpu":
+        print(f"CPU Usage: {RuntimeMonitor.get_cpu_usage()}%")
+
+    elif attribute == "memory":
+        mem = RuntimeMonitor.get_memory_usage()
+        print(f"Memory: {mem['used']}/{mem['total']} ({mem['percent']}%)")
+
+    elif attribute == "gpu":
+        gpu = RuntimeMonitor.get_gpu_usage()
+        if gpu is None:
+            print("GPU usage not available")
+        else:
+            print(f"GPU Usage: {gpu:.2f}%")
+
+    elif attribute == "vram":
+        vram = RuntimeMonitor.get_vram_usage()
+        if vram is None:
+            print("VRAM usage not available")
+        else:
+            print(f"VRAM: {vram['used']}MB / {vram['total']}MB {vram['percent']:.2f}%")
+
+    elif attribute == "all":
+        cpu = RuntimeMonitor.get_cpu_usage()
+        mem = RuntimeMonitor.get_memory_usage()
+        gpu = RuntimeMonitor.get_gpu_usage()
+        vram = RuntimeMonitor.get_vram_usage()
+        print(f"CPU Usage: {cpu}%")
+        print(f"Memory: {mem['used']}/{mem['total']} ({mem['percent']}%)")
+        if gpu is None:
+            print("GPU Usage: not available")
+        else:
+            print(f"GPU Usage: {gpu:.2f}%")
+        if vram is None:
+            print("VRAM Usage: not available")
+        else:
+            print(f"VRAM: {vram['used']}MB / {vram['total']}MB {vram['percent']:.2f}%")
+    
+    if attribute == "live":
+        try:
+            while True:
+                subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
+                print("=== LIVE SYSTEM STATS ===\n")
+                system_show_stats("all")
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nLive stats stopped.")
+            return
+
 
 def system_parserbuilder(cmdword):
     parser = argparse.ArgumentParser(prog = cmdword, add_help=False)
