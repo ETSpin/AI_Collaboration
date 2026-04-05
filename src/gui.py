@@ -1,16 +1,17 @@
 """
 Class: Gui
-Author: MORS
+Author: Largely AI generated
 Date: 4 APR 26
 
 Description:
 Handles the display of model thought process (also called partial or streaming output) in real time
 Built to  support a separate UI element for showing the model's "thinking" process - separate from the conversation
 
-Usage:
+Responsibilities:
 TBD...
 """
 
+import os
 import tkinter as tk
 from tkinter import ttk
 
@@ -24,18 +25,45 @@ class Gui:
         self.root.geometry("1280x1410")
         self.root.resizable(True, True)
 
-        # Load full sprite sheet (10 frames horizontally)
-        self.full_image = Image.open("./assets/Retro Scientist - AI temp model v2.png")
+        # ============================
+        # FRAME CONFIG
+        # ============================
         self.frame_count = 10
-        self.frame_height = 250  # target display height
+        self.frame_width = 360
+        self.frame_height = 250
 
-        self.preprocess_sheet()
+        # Load individual frames
+        self.frames = self.load_frames()
 
         self._create_widgets()
 
         # Initialize persona image at temp = 0.0
         self.update_persona_image(0.0)
 
+    # ============================================================
+    # LOAD INDIVIDUAL FRAME FILES
+    # ============================================================
+    def load_frames(self):
+        frames = []
+
+        for i in range(self.frame_count):
+            filename = f"./assets/Scientist Frame {i}.png"
+
+            if not os.path.exists(filename):
+                raise FileNotFoundError(f"Missing frame file: {filename}")
+
+            img = Image.open(filename).convert("RGBA")
+
+            # Resize to 360x250
+            img = img.resize((self.frame_width, self.frame_height), Image.LANCZOS)
+
+            frames.append(img)
+
+        return frames
+
+    # ============================================================
+    # GUI WIDGETS
+    # ============================================================
     def _create_widgets(self):
 
         # ============================
@@ -90,7 +118,7 @@ class Gui:
             orient="horizontal",
             length=RIGHT_W,
             font=("Arial", 10),
-            command=self.on_temp_change   # <-- callback wired here
+            command=self.on_temp_change
         )
         self.slider_temp.place(x=RIGHT_X, y=310, width=RIGHT_W, height=50)
 
@@ -174,112 +202,76 @@ class Gui:
         )
         self.textarea_4.place(x=RIGHT_X, y=1130, width=RIGHT_W, height=260)
 
-    # ============================
-    # IMAGE UPDATE LOGIC
-    # ============================
-
+    # ============================================================
+    # TEMPERATURE SLIDER CALLBACK
+    # ============================================================
     def on_temp_change(self, value):
-        """Slider callback — updates persona image continuously."""
         self.update_persona_image(float(value))
 
+    # ============================================================
+    # UPDATE PERSONA IMAGE (NO DRIFT VERSION)
+    # ============================================================
     def update_persona_image(self, temp):
-        # 1. Determine which frame to show
-        index = int(temp * (self.frame_count - 1))
-        frame_width = self.full_image.width // self.frame_count
+        """
+        Clean, stable, drift-proof persona renderer.
+        Uses preloaded individual frames.
+        """
 
-        x0 = index * frame_width
-        x1 = x0 + frame_width
+        # 1. Select frame
+        index = min(9, max(0, int(temp * 9)))
+        frame = self.frames[index]
 
-        frame = self.full_image.crop((x0, 0, x1, self.full_image.height))
+        # 2. Glow canvas
+        GLOW_EXTRA = 60
+        VIEW_W = 360
+        VIEW_H = self.frame_height
 
-        # 2. Crop top/bottom
-        crop_top = 275
-        crop_bottom = 300
-        frame = frame.crop((0, crop_top, frame.width, frame.height - crop_bottom))
+        CANVAS_W = VIEW_W + GLOW_EXTRA
+        CANVAS_H = VIEW_H
 
-        # 3. Resize to 250px height
-        target_h = 250
-        scale_factor = target_h / frame.height
-        new_w = int(frame.width * scale_factor)
-        frame = frame.resize((new_w, target_h), Image.LANCZOS)
-
-        # -----------------------------------
-        # 4. Build glow canvas (half as wide as before)
-        # -----------------------------------
-        glow_extra = 60  # was 120; now half as thick
-        glow_w = 360 + glow_extra
-        glow_h = target_h
-
-        # Temperature-based background tint
         bg_color = (
-            int(60 + 160 * temp),        # red
-            int(60 + 100 * (1 - temp)),  # green
-            int(80 + 160 * (1 - temp))   # blue
+            int(60 + 160 * temp),
+            int(60 + 100 * (1 - temp)),
+            int(80 + 160 * (1 - temp)),
+            255
         )
 
-        glow = Image.new("RGB", (glow_w, glow_h), bg_color)
+        glow_canvas = Image.new("RGBA", (CANVAS_W, CANVAS_H), bg_color)
 
-        # 5. Create blurred glow source
-        blurred = frame.filter(ImageFilter.GaussianBlur(radius=35))
+        # 3. Blurred glow
+        rgb_frame = frame.convert("RGB")
+        blurred = rgb_frame.filter(ImageFilter.GaussianBlur(radius=35))
 
-        # Tint the blurred glow
         tint = Image.new("RGB", blurred.size, (
             int(255 * temp),
             int(180 * (1 - temp)),
             int(255 * (1 - temp))
         ))
-        blurred = Image.blend(blurred, tint, alpha=0.45)
+        blurred = Image.blend(blurred, tint, alpha=0.45).convert("RGBA")
 
-        # Paste blurred glow centered
-        glow_x = (glow_w - blurred.width) // 2
-        glow.paste(blurred, (glow_x, 0))
+        # 4. Center blurred glow
+        glow_x = (CANVAS_W - blurred.width) // 2
+        glow_canvas.paste(blurred, (glow_x, 0), blurred)
 
-        # -----------------------------------
-        # 6. Paste the frame centered on top
-        # -----------------------------------
-        final = glow.copy()
-        frame_x = (glow_w - frame.width) // 2
-        final.paste(frame, (frame_x, 0))
+        # 5. Center crisp frame
+        frame_x = (CANVAS_W - frame.width) // 2
+        glow_canvas.paste(frame, (frame_x, 0), frame)
 
-        # -----------------------------------
-        # 7. Crop final to 360px viewport
-        # -----------------------------------
-        left = (glow_w - 360) // 2
-        final = final.crop((left, 0, left + 360, target_h))
+        # 6. Crop final viewport
+        left = (CANVAS_W - VIEW_W) // 2
+        final = glow_canvas.crop((left, 0, left + VIEW_W, CANVAS_H))
 
-        # 8. Display
+        # 7. Display
         self.tk_frame = ImageTk.PhotoImage(final)
         self.image_label.config(image=self.tk_frame)
 
-
-
-
-
-    def preprocess_sheet(self):
-        img = self.full_image
-
-        # --- 1. Crop top and bottom to remove whitespace ---
-        crop_top = 275
-        crop_bottom = 300
-        img = img.crop((0, crop_top, img.width, img.height - crop_bottom))
-
-        # --- 2. Resize height to 250px (viewport height) ---
-        target_h = 250
-        scale_factor = target_h / img.height
-        new_w = int(img.width * scale_factor)
-        img = img.resize((new_w, target_h), Image.LANCZOS)
-
-        # Store the processed sheet
-        self.processed_sheet = img
-
-
-
-    # ============================
+    # ============================================================
     # BUTTON HANDLER
-    # ============================
-
+    # ============================================================
     def on_button_1_click(self):
         pass
+
+
 
 
 
