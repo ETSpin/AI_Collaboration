@@ -23,6 +23,7 @@ import time
 
 from context_loader import ContextLoader
 from conversation_manager import ConversationManager
+from model_manager import ModelManager
 from runtime_monitor import RuntimeMonitor
 from utils import Utils as utils
 
@@ -144,19 +145,19 @@ def system_update(attribute, value, conversation):
 
 def system_show_model_info(attribute):
     if attribute == "available":
-        print(ConversationManager.get_available_models())
+        print(ModelManager.get_available_models())
     elif attribute == "downloaded":
-        print(ConversationManager.get_downloaded_models())
+        print(ModelManager.get_downloaded_models())
     elif attribute == "running":
-        print(ConversationManager.get_running_models())
+        print(ModelManager.get_running_models())
 
 def system_install_model(attribute):
         utils.install_ollama_model(attribute)
-        print(ConversationManager.get_downloaded_models())
+        print(ModelManager.get_downloaded_models())
 
 def system_uninstall_model(attribute):
         utils.uninstall_ollama_model(attribute)
-        print(ConversationManager.get_downloaded_models())
+        print(ModelManager.get_downloaded_models())
 
 def system_help_command():
     print ("Overview of Possible Commands")

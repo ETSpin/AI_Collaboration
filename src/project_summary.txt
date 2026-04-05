@@ -7,14 +7,125 @@ Module Docstring:
   Date: 22 MAR 26
 
   Description:
-  Coordinates the other clases (i.e., ModelRunner, ConversationManager, ContextManager, FileGenerator, and ThinkingDisplay)
-  so everything doesn't end up in main.py - making the code unreadable and difficult to update later
+  Coordinates the major subsystems (ModelRunner, ConversationManager, ContextManager,
+  FileGenerator, ThinkingDisplay) to keep main.py clean and maintainable. Provides a
+  central lifecycle for creating, switching, and running conversations.
 
-  Usage:
-  TBD...
+   Responsibilities (Post‑Refactor):
+     - Maintain a registry of all Conversation objects created during runtime.
+     - Track which conversation is currently active.
+     - Create new conversations via create_conversation().
+     - Generate unique conversation IDs via Utils.generate_conv_id().
+     - Switch the active conversation via switch_conversation().
+     - Run the initial model turn for a new conversation.
+     - Provide a unified lifecycle entry point via start_new_conversation().
+     - Manage the REPL loop for user input and command dispatch.
+     - Route slash commands to dispatcher.system_dispatch().
+     - Route dash commands to dispatcher.conversation_dispatch().
+     - Append user and AI messages via ConversationManager.
+     - Provide placeholder hooks for GUI updates (chat + thinking displays).
+     - Provide a placeholder for context integration.
+
+   Not Responsible For:
+     - Implementing model logic (delegated to ModelRunner).
+     - Mutating Conversation internals directly (delegated to ConversationManager).
+     - Rendering GUI elements or managing GUI state.
+     - Managing filesystem context or file ingestion.
+     - Exporting files, logs, or external artifacts.
+
+   Public API Contract (Post‑Refactor):
+
+     Instance Methods:
+
+       - __init__()
+           Inputs: none
+           Outputs: AppController instance
+           Notes: initializes conversation registry and active ID
+
+       - conversations (property)
+           Inputs: none
+           Outputs: dict[str, Conversation]
+
+       - active_conversation_id (property getter/setter)
+           Inputs: none / str
+           Outputs: str or None
+
+       - active_conversation (property)
+           Inputs: none
+           Outputs: Conversation or None
+           Notes: read-only convenience accessor
+
+       - app_start(persona_name: str = "pymetheus")
+           Inputs: persona_name
+           Outputs: conversation_id
+           Side Effects: calls start_new_conversation()
+
+       - app_run()
+           Inputs: none
+           Outputs: none
+           Side Effects: calls app_start() then app_repl()
+
+       - app_repl()
+           Inputs: none
+           Outputs: none
+           Side Effects: REPL loop, dispatches commands, runs model
+
+       - create_conversation(persona_name)
+           Inputs: persona_name
+           Outputs: conversation_id
+           Notes: pure creation; does NOT switch active conversation
+
+       - switch_conversation(conv_id)
+           Inputs: conv_id
+           Outputs: bool (success)
+           Notes: updates active_conversation_id
+
+       - run_initial_conversation_turn(conv_id)
+           Inputs: conv_id
+           Outputs: model response or False
+           Notes: runs persona introduction turn
+
+       - start_new_conversation(persona_name)
+           Inputs: persona_name
+           Outputs: conversation_id or False
+           Notes: full lifecycle: create → switch → initial turn
+
+       - list_conversations()
+           Inputs: none
+           Outputs: list[str]
+
+       - run_user_turn()
+           Inputs: none
+           Outputs: none
+           Notes: placeholder for future user‑turn abstraction
+
+       - update_chat_display(output_chunk, window_id=None)
+           Inputs: output_chunk, window_id
+           Outputs: none
+           Notes: GUI placeholder
+
+       - update_thinking_display(output_chunk, window_id=None)
+           Inputs: output_chunk, window_id
+           Outputs: none
+           Notes: GUI placeholder
+
+       - integrate_context()
+           Inputs: none
+           Outputs: none
+           Notes: placeholder for context injection logic
+
+     Static Methods:
+       - None
+
+Imports:
+  dispatcher
+  from context_manager import ContextManager
+  from conversation_manager import ConversationManager
+  from model_runner import ModelRunner
+  from utils import Utils
 
 Classes:
-  class AppController()
+  class AppController
     (no class docstring)
     def __init__(self)
       (no method docstring)
@@ -30,7 +141,19 @@ Classes:
       (no method docstring)
     def app_repl(self)
       (no method docstring)
+    def create_conversation(self, persona_name)
+      (no method docstring)
     def app_run(self)
+      (no method docstring)
+    def switch_conversation(self, conv_id)
+      (no method docstring)
+    def run_user_turn()
+      (no method docstring)
+    def list_conversations(self)
+      (no method docstring)
+    def run_initial_conversation_turn(self, conv_id)
+      (no method docstring)
+    def start_new_conversation(self, persona_name)
       (no method docstring)
     def update_chat_display(self, output_chunk, window_id)
       (no method docstring)
@@ -55,6 +178,9 @@ Module Docstring:
   Usage:
   Imported by main.py or executed indirectly
 
+Imports:
+  argparse
+
 Top-level Functions:
   def parse_args()
     (no function docstring)
@@ -76,8 +202,11 @@ Module Docstring:
   Usage:
   Imported by main.py or any subsystem requiring configuration values.
 
+Imports:
+  from typing import Any, Dict
+
 Classes:
-  class ConfigManager()
+  class ConfigManager
     (no class docstring)
     def __init__(self, path)
       (no method docstring)
@@ -103,8 +232,12 @@ Module Docstring:
       - Never modify conversation state directly
       - Never call the model directly
 
+Imports:
+  from pathlib import Path
+  from context_manager import ContextManager
+
 Classes:
-  class ContextLoader()
+  class ContextLoader
     (no class docstring)
     def list_directory(path)
       (no method docstring)
@@ -136,8 +269,11 @@ Module Docstring:
   Usage:
   TBD...
 
+Imports:
+  from conversation import Conversation
+
 Classes:
-  class ContextManager()
+  class ContextManager
     (no class docstring)
     def start_conversation(persona_name)
       (no method docstring)
@@ -175,8 +311,11 @@ Module Docstring:
   Usage:
   As a container class, I am exposing the
 
+Imports:
+  from datetime import datetime, timezone
+
 Classes:
-  class Conversation()
+  class Conversation
     (no class docstring)
     def __init__(self, model_name, messages, model_options)
       (no method docstring)
@@ -233,8 +372,12 @@ Module Docstring:
   Usage:
   TBD...
 
+Imports:
+  subprocess
+  urllib.request
+
 Classes:
-  class ConversationManager()
+  class ConversationManager
     (no class docstring)
     def add_user_message(conversation, input_message)
       (no method docstring)
@@ -283,6 +426,21 @@ Module Docstring:
 
   --- Needs to be refactored to clean up repeat code between system and conversation commands
 
+Imports:
+  argparse
+  os
+  shlex
+  subprocess
+  time
+  from context_loader import ContextLoader
+  from conversation_manager import ConversationManager
+  from runtime_monitor import RuntimeMonitor
+  from utils import Utils
+
+Top-level Constants:
+  system_key_words
+  conversation_key_words
+
 Top-level Functions:
   def system_dispatch(cmd, conversation)
     (no function docstring)
@@ -329,7 +487,7 @@ Module Docstring:
   TBD...
 
 Classes:
-  class FileGenerator()
+  class FileGenerator
     (no class docstring)
     def detect_file_request(self, user_input)
       (no method docstring)
@@ -357,8 +515,14 @@ Module Docstring:
   Responsibilities:
   TBD...
 
+Imports:
+  os
+  tkinter
+  from tkinter import ttk
+  from PIL import Image, ImageFilter, ImageTk
+
 Classes:
-  class Gui()
+  class Gui
     (no class docstring)
     def __init__(self, root)
       (no method docstring)
@@ -389,6 +553,9 @@ Module Docstring:
 
   Usage:
 
+Imports:
+  from app_controller import AppController
+
 Top-level Functions:
   def main()
     (no function docstring)
@@ -408,8 +575,11 @@ Module Docstring:
   Responsibilities:
   TBD...
 
+Imports:
+  from ollama import chat
+
 Classes:
-  class ModelRunner()
+  class ModelRunner
     Select a model
     def set_model(self, model_name)
       (no method docstring)
@@ -444,8 +614,12 @@ Module Docstring:
   - Provide a clean, stateless interface for system telemetry
   - Avoid any model-specific or context-specific logic
 
+Imports:
+  subprocess
+  psutil
+
 Classes:
-  class RuntimeMonitor()
+  class RuntimeMonitor
     (no class docstring)
     def get_cpu_usage()
       (no method docstring)
@@ -461,15 +635,25 @@ Classes:
 
 FILE: summarize_project.py
 ------------------------------------------------------------
+Imports:
+  ast
+  os
+  textwrap
+
 Top-level Functions:
   def extract_docstring(node)
-    Return cleaned docstring or empty string.
+    (no function docstring)
+  def extract_todos(source)
+    (no function docstring)
   def summarize_file(path)
-    Parse a Python file and extract module, class, and function summaries.
+    (no function docstring)
   def summarize_directory(directory)
-    Walk a directory and summarize all .py files.
+    (no function docstring)
   def format_summary(summaries)
-    Format the extracted data into a clean, readable text block.
+    (no function docstring)
+
+TODO Comments:
+  # TODOs
 
 
 FILE: thinking_display.py
@@ -487,7 +671,7 @@ Module Docstring:
   TBD...
 
 Classes:
-  class ThinkingDisplay()
+  class ThinkingDisplay
     (no class docstring)
     def capture_partial_output(self, output_chunk)
       (no method docstring)
@@ -513,9 +697,15 @@ Module Docstring:
   - No model logic
   - No conversation logic
 
+Imports:
+  subprocess
+  from datetime import datetime
+
 Classes:
-  class Utils()
+  class Utils
     (no class docstring)
+    def generate_conv_id()
+      (no method docstring)
     def list_installed_models(self)
       (no method docstring)
     def get_model_info(self, model_name)
@@ -527,6 +717,4 @@ Classes:
     def install_ollama_model(model)
       (no method docstring)
     def uninstall_ollama_model(model)
-      (no method docstring)
-    def generate_conv_id()
       (no method docstring)

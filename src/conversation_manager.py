@@ -11,11 +11,6 @@ TBD...
 
 """
 
-#import json
-import subprocess
-import urllib.request
-
-
 class ConversationManager:
 
     # Accept user's input - will need to flesh this out later -- error checking and the like
@@ -28,7 +23,6 @@ class ConversationManager:
     def add_ai_response(conversation, response):
         conversation._messages.append({"role": "assistant", "content" : response.message.content})
         conversation.updated_at = response.created_at
-
 
     @staticmethod
     def add_ai_metadata(conversation, response):
@@ -69,58 +63,4 @@ class ConversationManager:
     def get_conversation_info(conversation):
         return str(conversation)
     
-    #Return the downloaded models - this is spawned as a subprocess to get to the Ollama Cli
-    @staticmethod
-    def get_downloaded_models():
-
-        try:
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-
-            return result.stdout
-
-        except Exception as e:
-            return(f"Error retrieving model list: {e}")
-        
-    
-    #Return the models available to be downloaded
-    #It comes down as a mess of json -- thanks to AI for the json cleaner
-    @staticmethod
-    def get_available_models():
-        
-        try:
-            url = "https://ollama.com/library"
-
-        # Fetch raw bytes from the URL
-            with urllib.request.urlopen(url) as response:
-                raw_bytes = response.read()
-
-        # Decode as UTF‑8 safely
-            html = raw_bytes.decode("utf-8", errors="replace")
-            return html
-           
-        except Exception as e:
-            return(f"Error retrieving model list: {e}")
-
-
-    #Return the models available to be downloaded - this is spawned as a subprocess to get to the Ollama Cli
-    @staticmethod
-    def get_running_models():
-        
-        try:
-            result = subprocess.run(
-                ["ollama", "ps"],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-
-            return result.stdout
-
-        except Exception as e:
-            return(f"Error retrieving model list: {e}")
 

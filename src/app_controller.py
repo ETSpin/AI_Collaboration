@@ -8,7 +8,7 @@ Coordinates the major subsystems (ModelRunner, ConversationManager, ContextManag
 FileGenerator, ThinkingDisplay) to keep main.py clean and maintainable. Provides a
 central lifecycle for creating, switching, and running conversations.
 
- Responsibilities (Post‑Refactor):
+ Responsibilities (Post-Refactor):
    - Maintain a registry of all Conversation objects created during runtime.
    - Track which conversation is currently active.
    - Create new conversations via create_conversation().
@@ -30,7 +30,7 @@ central lifecycle for creating, switching, and running conversations.
    - Managing filesystem context or file ingestion.
    - Exporting files, logs, or external artifacts.
 
- Public API Contract (Post‑Refactor):
+ Public API Contract (Post-Refactor):
 
    Instance Methods:
 
@@ -42,10 +42,6 @@ central lifecycle for creating, switching, and running conversations.
      - conversations (property)
          Inputs: none
          Outputs: dict[str, Conversation]
-
-     - active_conversation_id (property getter/setter)
-         Inputs: none / str
-         Outputs: str or None
 
      - active_conversation (property)
          Inputs: none
@@ -94,7 +90,7 @@ central lifecycle for creating, switching, and running conversations.
      - run_user_turn()
          Inputs: none
          Outputs: none
-         Notes: placeholder for future user‑turn abstraction
+         Notes: placeholder for future user-turn abstraction
 
      - update_chat_display(output_chunk, window_id=None)
          Inputs: output_chunk, window_id
@@ -114,6 +110,7 @@ central lifecycle for creating, switching, and running conversations.
    Static Methods:
      - None
 """
+
 
 import dispatcher
 from context_manager import ContextManager
@@ -137,10 +134,6 @@ class AppController:
     def active_conversation_id(self):
         return self._active_conversation_id
     
-    @active_conversation_id.setter
-    def active_conversation_id(self, value):
-        self._active_conversation_id = value
-    
     @property
     def active_conversation(self):
         return self._conversations.get(self._active_conversation_id)
@@ -154,10 +147,8 @@ class AppController:
     def app_repl(self):
         while True:
             user_input = input("User: ")
-
             if not user_input:
                 break  # exit on blank input
-
             conv = self.active_conversation
 
             # Slash and Dash commands
@@ -168,14 +159,9 @@ class AppController:
             if user_input.startswith("-"):
                 dispatcher.conversation_dispatch(user_input[1:], conv)
                 continue
-
-            # Normal user message
-            ConversationManager.add_user_message(conv, user_input)
-
-            response = ModelRunner.run_conversation(model=conv.model_name, messages=conv.messages, options=conv.options)
-
-            ConversationManager.add_ai_response(conv, response)
-            print(f"{conv.persona.capitalize()}:", response.message.content)
+            
+            conversation_turn = self.run_conversation_turn(user_input)
+            print(f"{conv.persona.capitalize()}:", conversation_turn)
 
 
     # Creates the conversation and assigns it to the conversations dict with an id
@@ -193,15 +179,21 @@ class AppController:
     # Switch the active conversation to the passed conv_id
     def switch_conversation(self, conv_id):
         if conv_id in self.conversations:
-            self.active_conversation_id = conv_id
+            self._active_conversation_id = conv_id
             return True
         
         print(f"No conversation with id: {conv_id}")
         return False
     
-    # This will handle getting and clearing the user portion of the conversation
-    def run_user_turn():
-        pass
+    # This handles one turn of the conversation
+    def run_conversation_turn(self, user_input):
+        conv = self.active_conversation
+        
+        ConversationManager.add_user_message(conv, user_input)
+        response = ModelRunner.run_conversation(model=conv.model_name,messages=conv.messages, options=conv.options)
+        ConversationManager.add_ai_response(conv, response)
+        
+        return response.message.content
     
     #
     def list_conversations(self):
@@ -216,7 +208,6 @@ class AppController:
         ConversationManager.add_ai_response(conversation, response)
         print(f"{conversation.persona.capitalize()}:", response.message.content)
 
-    
     # Create and start a new conversation
     def start_new_conversation(self, persona_name):
         if persona_name not in ContextManager.personalities:
