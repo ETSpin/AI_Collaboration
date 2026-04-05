@@ -1,0 +1,532 @@
+
+FILE: app_controller.py
+------------------------------------------------------------
+Module Docstring:
+  Class: AppController
+  Author: MORS
+  Date: 22 MAR 26
+
+  Description:
+  Coordinates the other clases (i.e., ModelRunner, ConversationManager, ContextManager, FileGenerator, and ThinkingDisplay)
+  so everything doesn't end up in main.py - making the code unreadable and difficult to update later
+
+  Usage:
+  TBD...
+
+Classes:
+  class AppController()
+    (no class docstring)
+    def __init__(self)
+      (no method docstring)
+    def conversations(self)
+      (no method docstring)
+    def active_conversation_id(self)
+      (no method docstring)
+    def active_conversation_id(self, value)
+      (no method docstring)
+    def active_conversation(self)
+      (no method docstring)
+    def app_start(self, persona_name)
+      (no method docstring)
+    def app_repl(self)
+      (no method docstring)
+    def app_run(self)
+      (no method docstring)
+    def update_chat_display(self, output_chunk, window_id)
+      (no method docstring)
+    def update_thinking_display(self, output_chunk, window_id)
+      (no method docstring)
+    def integrate_context(self)
+      (no method docstring)
+
+
+FILE: cli.py
+------------------------------------------------------------
+Module Docstring:
+  File: cli.py
+  Author: MORS
+  Date: 20 Dec 25
+
+  Description:
+  Provides a command-line interface.
+  This module is responsible for parsing user-supplied arguments, validating them, and routing execution to
+  the appropriate subsystems such as ingestion, analysis, or formatting.
+
+  Usage:
+  Imported by main.py or executed indirectly
+
+Top-level Functions:
+  def parse_args()
+    (no function docstring)
+
+
+FILE: config_manager.py
+------------------------------------------------------------
+Module Docstring:
+  File: config_manager.py
+  Author: MORS
+  Date: 20 Dec 25
+
+  Description:
+  Centralizes access to runtime settings, allowing the system to load configuration
+  values from files, environment variables, or default settings. 
+  By isolating configuration logic, the rest of the system remains clean, predictable, and
+  easy to test.
+
+  Usage:
+  Imported by main.py or any subsystem requiring configuration values.
+
+Classes:
+  class ConfigManager()
+    (no class docstring)
+    def __init__(self, path)
+      (no method docstring)
+    def load(self)
+      (no method docstring)
+
+
+FILE: context_loader.py
+------------------------------------------------------------
+Module Docstring:
+  Class: context_loader.py
+  Author: MORS
+  Date: 3 APR 26
+
+  Description: This class will alloow the AI to see the filesystem for loading directories, reading files, chunking or summarizing large content, 
+               and preparing structured context blocks that can be injected into a Conversation object.
+
+  Responsibilities:
+      - Inspect directories and return a structured tree
+      - Read file contents safely
+      - Chunk or summarize large files
+      - Provide context blocks formatted for LLM consumption
+      - Never modify conversation state directly
+      - Never call the model directly
+
+Classes:
+  class ContextLoader()
+    (no class docstring)
+    def list_directory(path)
+      (no method docstring)
+    def read_file(path, max_bytes)
+      (no method docstring)
+    def chunk_file(file_contents, max_chunk_size)
+      (no method docstring)
+    def summarize_file(file_contents)
+      (no method docstring)
+    def build_context_block(path, contents)
+      (no method docstring)
+    def file_to_context(conversation, path, max_chunk_size)
+      (no method docstring)
+    def directory_to_context(conversation, path, max_chunk_size)
+      (no method docstring)
+
+
+FILE: context_manager.py
+------------------------------------------------------------
+Module Docstring:
+  Class: ContextManager
+  Author: MORS
+  Date: 22 MAR 26
+
+  Description:
+  Handles any user provided files and an ability to import data from a library
+  - Will likley also handle other tool(s) or methods for the model to be able to get additional information (web, other local tools, etc.)
+
+  Usage:
+  TBD...
+
+Classes:
+  class ContextManager()
+    (no class docstring)
+    def start_conversation(persona_name)
+      (no method docstring)
+    def inject_context(conversation, block)
+      (no method docstring)
+    def accept_file_upload(self, input_file)
+      (no method docstring)
+    def detect_file_type(self, input_file)
+      (no method docstring)
+    def extract_data(self, input_file)
+      (no method docstring)
+    def store_context_data(self, data)
+      (no method docstring)
+    def get_context_data(self)
+      (no method docstring)
+    def remove_context_data(self, data)
+      (no method docstring)
+    def load_library_files(self, directory)
+      (no method docstring)
+    def get_library_list(self)
+      (no method docstring)
+
+
+FILE: conversation.py
+------------------------------------------------------------
+Module Docstring:
+  Class: conversation
+  Author: MORS
+  Date: 28 MAR 26
+
+  Description:
+  This is the conversation class -- it will enable the creation of a conversation object that contains
+  messages, model name, and other data for each conversation
+
+  Usage:
+  As a container class, I am exposing the
+
+Classes:
+  class Conversation()
+    (no class docstring)
+    def __init__(self, model_name, messages, model_options)
+      (no method docstring)
+    def model_name(self)
+      (no method docstring)
+    def model_name(self, value)
+      (no method docstring)
+    def messages(self)
+      (no method docstring)
+    def options(self)
+      (no method docstring)
+    def persona(self, value)
+      (no method docstring)
+    def persona(self)
+      (no method docstring)
+    def persona(self, value)
+      (no method docstring)
+    def created_at(self)
+      (no method docstring)
+    def created_at(self, value)
+      (no method docstring)
+    def updated_at(self)
+      (no method docstring)
+    def updated_at(self, value)
+      (no method docstring)
+    def metadata(self)
+      (no method docstring)
+    def metadata(self, value)
+      (no method docstring)
+    def token_count(self)
+      (no method docstring)
+    def token_count(self, value)
+      (no method docstring)
+    def title(self)
+      (no method docstring)
+    def title(self, value)
+      (no method docstring)
+    def __len__(self)
+      (no method docstring)
+    def __str__(self)
+      (no method docstring)
+
+
+FILE: conversation_manager.py
+------------------------------------------------------------
+Module Docstring:
+  Class: ConversationManager
+  Author: MORS
+  Date: 22 MAR 26
+
+  Description:
+  This class is a utility that will act on conversation objects
+
+  Usage:
+  TBD...
+
+Classes:
+  class ConversationManager()
+    (no class docstring)
+    def add_user_message(conversation, input_message)
+      (no method docstring)
+    def add_ai_response(conversation, response)
+      (no method docstring)
+    def add_ai_metadata(conversation, response)
+      (no method docstring)
+    def reset_conversation(conversation)
+      (no method docstring)
+    def get_model(conversation)
+      (no method docstring)
+    def set_model(conversation, new_model)
+      (no method docstring)
+    def history(conversation)
+      (no method docstring)
+    def get_temperature(conversation)
+      (no method docstring)
+    def set_temperature(conversation, value)
+      (no method docstring)
+    def get_conversation_info(conversation)
+      (no method docstring)
+    def get_downloaded_models()
+      (no method docstring)
+    def get_available_models()
+      (no method docstring)
+    def get_running_models()
+      (no method docstring)
+
+
+FILE: dispatcher.py
+------------------------------------------------------------
+Module Docstring:
+  File: dispatcher.py
+  Author: MORS
+  Date: 20 Dec 25
+
+  Description:
+      Command dispatcher This module receives raw command strings from the main event loop, parses them into their constituent
+      components (command, arguments, and flags), and routes them to the appropriate handler within the system.
+
+      The dispatcher is intentionally lightweight and modular. Each command handler is responsible for validating its own arguments and flags,
+      enforcing defaults, and returning a human-readable response string suitable for display in the GUI output window.
+
+  Responsibilities:
+      TBD...
+
+  --- Needs to be refactored to clean up repeat code between system and conversation commands
+
+Top-level Functions:
+  def system_dispatch(cmd, conversation)
+    (no function docstring)
+  def system_display(attribute, conversation)
+    (no function docstring)
+  def system_update(attribute, value, conversation)
+    (no function docstring)
+  def system_show_model_info(attribute)
+    (no function docstring)
+  def system_install_model(attribute)
+    (no function docstring)
+  def system_uninstall_model(attribute)
+    (no function docstring)
+  def system_help_command()
+    (no function docstring)
+  def system_show_stats(attribute)
+    (no function docstring)
+  def system_parserbuilder(cmdword)
+    (no function docstring)
+  def conversation_dispatch(cmd, conversation)
+    (no function docstring)
+  def load_file(conversation, path)
+    (no function docstring)
+  def load_directory(conversation, path)
+    (no function docstring)
+  def conversation_help()
+    (no function docstring)
+  def conversation_parserbuilder(cmdword)
+    (no function docstring)
+
+
+FILE: file_generator.py
+------------------------------------------------------------
+Module Docstring:
+  Class: FileGenerator
+  Author: MORS
+  Date: 22 MAR 26
+
+  Description:
+  Handles the creation of files either generated by the model or created from the conversation history
+  Will supports exporting the model output, chat logs, or other conversation artifacts
+
+  Usage:
+  TBD...
+
+Classes:
+  class FileGenerator()
+    (no class docstring)
+    def detect_file_request(self, user_input)
+      (no method docstring)
+    def convert_output_to_file(self, output_data, file_format)
+      (no method docstring)
+    def save_file(self, output_file, destination_path)
+      (no method docstring)
+    def generate_conversation_log(self, conversation_history, file_format)
+      (no method docstring)
+    def get_generated_file(self)
+      (no method docstring)
+
+
+FILE: gui.py
+------------------------------------------------------------
+Module Docstring:
+  Class: Gui
+  Author: Largely AI generated
+  Date: 4 APR 26
+
+  Description:
+  Handles the display of model thought process (also called partial or streaming output) in real time
+  Built to  support a separate UI element for showing the model's "thinking" process - separate from the conversation
+
+  Responsibilities:
+  TBD...
+
+Classes:
+  class Gui()
+    (no class docstring)
+    def __init__(self, root)
+      (no method docstring)
+    def load_frames(self)
+      (no method docstring)
+    def _create_widgets(self)
+      (no method docstring)
+    def on_temp_change(self, value)
+      (no method docstring)
+    def update_persona_image(self, temp)
+      Clean, stable, drift-proof persona renderer.
+      Uses preloaded individual frames.
+    def on_button_1_click(self)
+      (no method docstring)
+
+
+FILE: main.py
+------------------------------------------------------------
+Module Docstring:
+  File: main.py
+  Author: MORS
+  Date: 21 MAR 26
+
+  Description:
+  AI experimentation with Ollama and Python
+
+  Initial examples/research from https://www.cohorte.co/blog/using-ollama-with-python-step-by-step-guide 
+
+  Usage:
+
+Top-level Functions:
+  def main()
+    (no function docstring)
+
+
+FILE: model_runner.py
+------------------------------------------------------------
+Module Docstring:
+  Class: ModelRunner
+  Author: MORS
+  Date: 22 MAR 26
+
+  Description:
+  This  class that will hold all of the model interactions between Ollama and Python.
+  - will handle single turn or streaming output (conversations in Ollama are basically single_turn, with history reloaded)
+
+  Responsibilities:
+  TBD...
+
+Classes:
+  class ModelRunner()
+    Select a model
+    def set_model(self, model_name)
+      (no method docstring)
+    def run_single_turn(model, input_text)
+      (no method docstring)
+    def run_conversation(model, messages, options)
+      (no method docstring)
+    def stream_partial_output(self, callback)
+      (no method docstring)
+    def reset_model_state(self)
+      (no method docstring)
+
+
+FILE: runtime_monitor.py
+------------------------------------------------------------
+Module Docstring:
+  Class: RuntimeMonitor
+  Author: MORS
+  Date: 4 APR 26
+
+  Description:
+  Provides system-level telemetry for the running environment, including GPU, VRAM,
+  CPU, and memory usage. This class is responsible for querying the underlying
+  operating system and hardware to expose real-time resource metrics that can be
+  used by the application, REPL, or future GUI components.
+
+  Responsibilities:
+  - Report current GPU utilization (if available)
+  - Report current GPU VRAM usage (if available)
+  - Report current CPU utilization
+  - Report current system memory usage
+  - Provide a clean, stateless interface for system telemetry
+  - Avoid any model-specific or context-specific logic
+
+Classes:
+  class RuntimeMonitor()
+    (no class docstring)
+    def get_cpu_usage()
+      (no method docstring)
+    def get_memory_usage()
+      (no method docstring)
+    def get_gpu_usage()
+      (no method docstring)
+    def get_vram_usage()
+      (no method docstring)
+    def _run_nvidia_smi()
+      (no method docstring)
+
+
+FILE: summarize_project.py
+------------------------------------------------------------
+Top-level Functions:
+  def extract_docstring(node)
+    Return cleaned docstring or empty string.
+  def summarize_file(path)
+    Parse a Python file and extract module, class, and function summaries.
+  def summarize_directory(directory)
+    Walk a directory and summarize all .py files.
+  def format_summary(summaries)
+    Format the extracted data into a clean, readable text block.
+
+
+FILE: thinking_display.py
+------------------------------------------------------------
+Module Docstring:
+  Class: ThinkingDisplay
+  Author: MORS
+  Date: 22 MAR 26
+
+  Description:
+  Handles the display of model thought process (also called partial or streaming output) in real time
+  Built to  support a separate UI element for showing the model's "thinking" process - separate from the conversation
+
+  Usage:
+  TBD...
+
+Classes:
+  class ThinkingDisplay()
+    (no class docstring)
+    def capture_partial_output(self, output_chunk)
+      (no method docstring)
+    def update_display(self, output_chunk, window_id)
+      (no method docstring)
+    def clear_display(self, window_id)
+      (no method docstring)
+
+
+FILE: utils.py
+------------------------------------------------------------
+Module Docstring:
+  Class: Utils
+  Author: MORS
+  Date: 22 MAR 26
+
+  Description:
+  Here the utility functions for interacting with the Ollama environment - i.e., find out which models are installed which version is running, etc.
+  This will be useful from the start  for  development and debugging purposes
+
+  Responsibilities:
+  - Small, generic helpers that do not belong to any subsystem
+  - No model logic
+  - No conversation logic
+
+Classes:
+  class Utils()
+    (no class docstring)
+    def list_installed_models(self)
+      (no method docstring)
+    def get_model_info(self, model_name)
+      (no method docstring)
+    def get_ollama_version(self)
+      (no method docstring)
+    def ping_ollama(self)
+      (no method docstring)
+    def install_ollama_model(model)
+      (no method docstring)
+    def uninstall_ollama_model(model)
+      (no method docstring)
+    def generate_conv_id()
+      (no method docstring)

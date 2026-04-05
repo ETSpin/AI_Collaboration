@@ -15,9 +15,16 @@ Responsibilities:
 """
 
 import subprocess
+from datetime import datetime
 
 
 class Utils:
+    # Generate a conversation ID based on the time
+    @staticmethod
+    def generate_conv_id():
+        now = datetime.now()
+        conv_id = now.strftime("%Y%m%d_%H%M%S_") + str(now.microsecond).zfill(6)
+        return conv_id
 
     # Return a list of installed Ollama models
     def list_installed_models(self):
@@ -72,7 +79,3 @@ class Utils:
 
         except Exception as e:
             return f"Error uninstalling model: {e}"
-        
-    @staticmethod
-    def generate_conv_id():
-        pass

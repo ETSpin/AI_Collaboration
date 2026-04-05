@@ -69,9 +69,7 @@ class ConversationManager:
     def get_conversation_info(conversation):
         return str(conversation)
     
-    
     #Return the downloaded models - this is spawned as a subprocess to get to the Ollama Cli
-    #Subprocess is imported here because we won't use it that often (if ever) so this saves some space
     @staticmethod
     def get_downloaded_models():
 
