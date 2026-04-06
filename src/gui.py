@@ -348,8 +348,6 @@ class Gui:
         if self.controller and self.controller.active_conversation:
             conv = self.controller.active_conversation
 
-            print (conv.conversation_id)
-
             context_text = []
             context_text.append(f"Conversation ID: {conv.conversation_id}")
             context_text.append(f"Persona: {conv.persona}")

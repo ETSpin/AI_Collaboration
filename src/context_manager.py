@@ -11,47 +11,76 @@ Usage:
 TBD...
 
 """
+import copy
+import json
+from pathlib import Path
 
 from conversation import Conversation
 
 
 class ContextManager:
+    def __init__(self):
+        self._persona_file_path = "./src/personalities.json" #we'll look at cleaning this up with another directory later
+        self._personas = []
+        
+        self.load_personas()
 
-    personalities = { "jeeves": {"prompt": "Jeeves:", "model": "llama3.2:latest", "personality": "", "rules": "", "num_ctx": "", "temperature": .7, "top_p": "", "top_k": "", "repeat_penalty": "", 
-                                 "description": "Jeeves is a polished, reliable conversational aide who provides structured, thoughtful guidance while maintaining a calm, "
-                                 "professional tone throughout the interaction."
-                                 },
-                     "pymetheus": {"prompt": "Pymetheus:", "model": "llama3.1:8b",
-            "personality": (
-            "Your name is Pymetheus. You are a precise, reliable Python development assistant "
-            "embedded inside a custom REPL. Your primary job is to help the user design, "
-            "extend, refactor, and debug their Python codebase.\n\n"
+    # Load the persona file from the persona
+    def load_personas(self):
+        path = Path(self._persona_file_path)
+        if not path.exists():
+            print(f"Persona file not found: {path}")
+            return False
 
-            "You have access to a large context window. Whenever the user asks for help "
-            "with code, architecture, or design, you should:\n"
-            "1. Request any missing files or context you need.\n"
-            "2. Work only with the code and context provided.\n"
-            "3. Produce clear, structured reasoning.\n"
-            "4. Output Python code inside fenced code blocks.\n"
-            "5. Avoid guessing about missing modules—ask for them instead.\n\n"
+        with path.open("r", encoding="utf-8") as f:
+            temp_personas_dict = json.load(f)
 
-            "You can reference multiple files at once, critique designs, propose improvements, "
-            "and generate new modules. When the user provides multiple files, treat them as "
-            "a unified project. If the user loads a directory summary, use it to understand "
-            "the project structure.\n\n"
+        if "_comment" in temp_personas_dict:
+            del temp_personas_dict["_comment"]
 
-            "If the user asks for help building or improving the REPL itself, you should "
-            "behave like a senior Python engineer: explain your reasoning, propose clean "
-            "interfaces, and ensure the design is maintainable and testable.\n\n"
+        for persona_key, persona_data in temp_personas_dict.items():
+            if not self.validate_persona(persona_key, persona_data):
+                print(f"Validation failed for persona '{persona_key}'")
+                return False
+        
+        self._personas = temp_personas_dict
+        return True
 
-            "Always ask for clarification if the request is ambiguous or if you need more "
-            "context to produce correct code."),
-            "rules": "", "num_ctx": 8192, "temperature": 0.2, "top_p": 0.9, "top_k": "", "repeat_penalty": 1.1, 
-            "description": "Pymetheus is a precise, methodical Python engineering assistant designed to reason deeply "
-            "about architecture, refactoring, and multi-file codebases with clarity and discipline."}, 
-    }
-
+    # Get the Personal from the loaded personas
+    def get_persona(self, name):
+        if name not in self._personas:
+            print(f"[ContextManager] Persona {name} not found in available personas")
+            return None
+        return copy.deepcopy(self._personas[name])
     
+    # Helper function - returns a list of the available personas - along with their descriptions
+    def list_personas(self):
+        persona_list = []
+
+        for key, data in self._personas.items():
+            persona_list.append({"key": key,"name": data["name"], "description": data["description"]})
+
+        print(f"[ContextManager] No Error just info --- Available personas: {[p['key'] for p in persona_list]}")
+        return sorted(persona_list, key=lambda p: p["name"].lower())  # this is a list of keys and descriptions in self._personas
+
+    # Helper function - ensures the personas are in the correct format -- will save time later
+    def validate_persona(self, key, data):
+        required_top_level_fields = ["name", "prompt_prefix", "model", "personality", "rules", "defaults", "description"]
+
+        for field in required_top_level_fields:
+            if field not in data:
+                print(f"Persona '{key}' missing field '{field}'")
+                return False
+
+        required_defaults = ["num_ctx", "temperature", "top_p","top_k", "repeat_penalty"]
+
+        for field in required_defaults:
+            if field not in data["defaults"]:
+                print(f"Persona '{key}' missing default requirement: '{field}'")
+                return False
+
+        return True
+
     # Create and return a fully-initialized Conversation object based on the selected personality profile.
     @staticmethod
     def start_conversation(persona_name: str):
@@ -87,15 +116,10 @@ class ContextManager:
         ]
 
         # Create and return the Conversation object
-        conversation = Conversation(
-            model_name=model_name,
-            messages=start_messages,
-            model_options=model_options
-        )
+        conversation = Conversation(model_name=model_name,messages=start_messages,model_options=model_options)
 
         # Update the conversation personality
         conversation.persona = persona_name
-
         return conversation
 
     # This fucntion updates the starting conversation from the system with new context
@@ -106,6 +130,9 @@ class ContextManager:
         system_msg["content"] += "\n\n" + block["contents"]
         conversation.messages[0] = system_msg
     
+    """Accept user's file input """
+    def build_prompt(self, input_file):
+        pass
        
     """Accept user's file input """
     def accept_file_upload(self, input_file):

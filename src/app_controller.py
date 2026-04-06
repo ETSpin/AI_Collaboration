@@ -109,6 +109,7 @@ central lifecycle for creating, switching, and running conversations.
 
 import dispatcher
 from context_manager import ContextManager
+from conversation import Conversation
 from conversation_manager import ConversationManager
 from model_runner import ModelRunner
 from utils import Utils
@@ -121,6 +122,9 @@ class AppController:
         self._conversations = {}
         self._active_conversation_id = None
         self.gui = None
+
+        self.context_manager = ContextManager()
+        self.context_manager.load_personas()
 
     @property
     def conversations(self):
@@ -161,8 +165,30 @@ class AppController:
 
 
     # Creates the conversation and assigns it to the conversations dict with an id
-    def create_conversation(self, persona_name):
-        conversation = ContextManager.start_conversation(persona_name) 
+    def create_conversation(self, persona_name, user_overrides=None): #user override will be fleshed out later
+        print("[AppController] Creating conversation...")
+
+        persona = self.context_manager.get_persona(persona_name)
+        if persona is None:
+            print(f"[AppController] Persona '{persona_name}' not found.")
+            return None
+        persona_defaults = persona["defaults"]
+        model_name = persona["model"]
+        model_options = {"num_ctx": persona_defaults.get("num_ctx"), "temperature": persona_defaults.get("temperature"), "top_p": persona_defaults.get("top_p"), "top_k": persona_defaults.get("top_k"), "repeat_penalty": persona_defaults.get("repeat_penalty"),}
+        model_options = {k: v for k, v in model_options.items() if v not in ("", None)} #remove blanks
+
+        start_messages = [{"role": "system", "content": persona.get("personality") or ""},{"role": "user", "content": "Hello."}]
+
+        """ This will come later
+        Merge defaults with user overrides
+        merged_options = copy of persona_defaults
+        if user_overrides is not None:
+        merged_options.update(user_overrides) 
+        """
+        conversation = Conversation(model_name=model_name,messages=start_messages,model_options=model_options)
+        #conversation = self.context_manager.start_conversation(persona_name=persona_name,model_name=model_name,options=persona_defaults) 
+        
+        conversation._persona = persona_name
         conv_id = Utils.generate_conv_id()
         conversation.conversation_id = conv_id
 
@@ -215,8 +241,9 @@ class AppController:
 
     # Create and start a new conversation
     def start_new_conversation(self, persona_name):
-        if persona_name not in ContextManager.personalities:
-            return False
+        if self.context_manager.get_persona(persona_name) is None:
+            print(f"[AppController] Persona '{persona_name}' not found.")
+            return None
         conversation_id = self.create_conversation(persona_name)
         self.switch_conversation(conversation_id)
         self.run_initial_conversation_turn(conversation_id)
