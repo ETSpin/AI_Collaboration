@@ -1,15 +1,75 @@
 """
 Class: Gui
-Author: Largely AI generated
+Author: Largely AI generated, refined by MORS
 Date: 4 APR 26
 
 Description:
-Handles the display of model thought process (also called partial or streaming output) in real time
-Built to  support a separate UI element for showing the model's "thinking" process - separate from the conversation
+Graphical User Interface for interacting with the AppController and underlying
+conversation system. Provides a complete visual front-end for chat, persona
+visualization, model settings, system prompt editing, and metadata inspection.
+
+The GUI is intentionally kept “dumb” — it does not run model logic or mutate
+conversation internals directly. Instead, it delegates all business logic to
+AppController and ConversationManager. Its responsibilities are limited to
+rendering, user input capture, and visual state updates.
 
 Responsibilities:
-TBD...
+   - Render the chat transcript and append new user/AI messages.
+   - Capture user input and forward it to AppController for processing.
+   - Display persona artwork and update it dynamically based on temperature.
+   - Provide a temperature slider and propagate changes to the active conversation.
+   - Display model settings, system prompt text, and conversation metadata.
+   - Maintain a clean, modular layout for future expansion (tools, notes, etc.).
+   - Provide hooks for AppController to push updates (chat + context panels).
+
+Not Responsible For:
+   - Running the model or generating responses.
+   - Managing conversation lifecycle or switching conversations.
+   - Mutating message history or model options directly (beyond temperature).
+   - Managing filesystem context or ingesting external files.
+   - Implementing business logic, dispatching commands, or REPL behavior.
+
+Public API Contract:
+
+   Constructor:
+     - __init__(root, controller)
+         Inputs: Tk root window, AppController instance
+         Outputs: Gui instance
+         Notes: builds all widgets, loads persona frames, initializes layout
+
+   Instance Methods:
+
+     - load_frames()
+         Inputs: none
+         Outputs: list[Image]
+         Notes: loads and resizes persona animation frames from disk
+
+     - _create_widgets()
+         Inputs: none
+         Outputs: none
+         Notes: constructs all GUI widgets and places them on the canvas
+
+     - on_button_1_click()
+         Inputs: none
+         Outputs: none
+         Notes: captures user input, sends it to controller, updates chat display
+
+     - on_temp_change(value)
+         Inputs: slider value (string/float)
+         Outputs: none
+         Notes: updates persona image and writes temperature into conversation options
+
+     - update_persona_image(temp)
+         Inputs: temperature (float)
+         Outputs: none
+         Notes: renders a drift-proof persona frame with glow effects
+
+     - update_context_panel()
+         Inputs: none
+         Outputs: none
+         Notes: refreshes metadata panel with conversation ID, persona, model, options
 """
+
 
 import os
 import tkinter as tk
@@ -19,11 +79,13 @@ from PIL import Image, ImageFilter, ImageTk
 
 
 class Gui:
-    def __init__(self, root):
+    def __init__(self, root, controller):        
         self.root = root
         self.root.title("gui")
         self.root.geometry("1280x1410")
         self.root.resizable(True, True)
+
+        self.controller = controller #connect the gui to the App_Controller
 
         # ============================
         # FRAME CONFIG
@@ -81,7 +143,7 @@ class Gui:
             bg="#ffffff", fg="#000000"
         )
         self.entry_1.place(x=10, y=1260, width=740, height=120)
-        self.entry_1.insert(0, "Enter text...")
+        #self.entry_1.insert(0, "Enter text...")
 
         self.button_1 = tk.Button(
             self.root, text="Button", font=("Arial", 12),
@@ -269,11 +331,45 @@ class Gui:
     # BUTTON HANDLER
     # ============================================================
     def on_button_1_click(self):
-        pass
+        text = self.entry_1.get()
+        persona = self.controller.active_conversation.persona
 
+        self.entry_1.delete(0, "end")
+        
+        self.chat_display.insert("end", f"User: {text}\n")
+        response = self.controller.run_conversation_turn(text)
+        self.chat_display.insert("end", f"{persona}: {response}\n")
+        self.chat_display.see("end")
 
+        self.update_context_panel()
 
+    # update the context panel based on the conversation
+    def update_context_panel(self):
+        if self.controller and self.controller.active_conversation:
+            conv = self.controller.active_conversation
 
+            print (conv.conversation_id)
+
+            context_text = []
+            context_text.append(f"Conversation ID: {conv.conversation_id}")
+            context_text.append(f"Persona: {conv.persona}")
+            context_text.append(f"Model: {conv.model_name}")
+            context_text.append(f"num_ctx: {conv.options["num_ctx"]}")
+            context_text.append(f"Temperature: {conv.options["temperature"]}")
+            context_text.append(f"top_p: {conv.options["top_p"]}")
+            context_text.append(f"Repeat Penalty: {conv.options["repeat_penalty"]}")
+
+            self.textarea_3.delete("1.0", "end")
+            self.textarea_3.insert("end", "\n".join(context_text))
+
+    # Update the persona graphic and slider bar based on the conversation
+    def on_temp_change(self, value):
+        temp = float(value)
+        self.update_persona_image(temp)
+        # update model options
+        if self.controller and self.controller.active_conversation:
+            conv = self.controller.active_conversation
+            conv.options["temperature"] = temp
 
 
 if __name__ == "__main__":

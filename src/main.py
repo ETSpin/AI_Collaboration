@@ -11,26 +11,31 @@ Initial examples/research from https://www.cohorte.co/blog/using-ollama-with-pyt
 Usage:
 
 """
+import tkinter as tk
 
 from app_controller import AppController
+from gui import Gui
 
 # from context_loader import ContextLoader
 # from context_manager import ContextManager
 
 
-def main():
-    AppController().app_run()
+#def main():
+#    AppController().app_run()
 
-    # cm = ContextManager()
-    # loader = ContextLoader()
+def main_gui():
+    
+    controller = AppController()
+    root = tk.Tk()
+    gui = Gui(root, controller)
+    controller.gui = gui
 
-    # conv = cm.start_conversation("pymetheus")
+    controller.start_new_conversation("pymetheus")
+    gui.update_context_panel()
+    gui.slider_temp.set(controller.active_conversation.options["temperature"])
+    gui.update_persona_image(controller.active_conversation.options["temperature"])
 
-    # # TEMPORARY TEST
-    # loader.directory_to_context(conv, "./src")
-
-    # print("\n=== SYSTEM MESSAGE AFTER LOADING ===\n")
-    # print(conv.messages[0]["content"])
+    root.mainloop()
 
 if __name__ == '__main__':
-    main()
+    main_gui()

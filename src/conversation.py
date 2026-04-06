@@ -1,15 +1,63 @@
 """
-Class: conversation
+Class: Conversation
 Author: MORS
 Date: 28 MAR 26
 
 Description:
-This is the conversation class -- it will enable the creation of a conversation object that contains
-messages, model name, and other data for each conversation
+Represents a single conversational session between the user and an AI persona.
+Stores all stateful information required to run, resume, serialize, or inspect a
+conversation. Acts as a structured container for model configuration, message
+history, metadata, and lifecycle timestamps.
 
-Usage:
-As a container class, I am exposing the 
+A Conversation object is created by ContextManager.start_conversation() and
+registered by AppController. It is mutated only through ConversationManager
+(add_user_message, add_ai_response, etc.) to maintain clean separation of concerns.
+
+Responsibilities:
+   - Store the model name used for this conversation.
+   - Maintain an ordered list of message dicts (role/content).
+   - Hold model options (temperature, top_p, num_ctx, repeat_penalty, etc.).
+   - Track persona identity associated with the conversation.
+   - Track creation and update timestamps.
+   - Store metadata, token counts, and optional conversation title.
+   - Provide read-only accessors for conversation state.
+   - Provide a stable conversation_id assigned by AppController.
+   - Provide readable __str__ and __len__ helpers for debugging and inspection.
+
+Not Responsible For:
+   - Running the model (handled by ModelRunner).
+   - Adding or modifying messages (handled by ConversationManager).
+   - Generating conversation IDs (handled by AppController/Utils).
+   - Managing GUI or CLI output.
+   - Managing context ingestion or external files.
+
+Public API Contract:
+   Constructor:
+     - __init__(model_name, messages=None, model_options=None)
+         Inputs: model_name [str], messages [list] or None, model_options [dict]
+         Outputs: Conversation instance
+         Notes: initializes timestamps, options, and internal state
+
+   Properties:
+     - model_name (get/set)
+     - conversation_id (get/set)
+     - messages (get)
+     - options (get)
+     - persona (get/set)
+     - created_at (get/set)
+     - updated_at (get/set)
+     - metadata (get/set)
+     - token_count (get/set)
+     - title (get/set)
+
+   Special Methods:
+     - __len__()
+         Outputs: number of message turns in the conversation
+
+     - __str__()
+         Outputs: human-readable summary of conversation state
 """
+
 from datetime import datetime, timezone
 
 
@@ -30,7 +78,6 @@ class Conversation:
         self._title = None #(summary of the conversation)
         self._prompt = "AI agent:"
         
-
     @property
     def model_name(self):
         return self._model_name
@@ -38,6 +85,14 @@ class Conversation:
     @model_name.setter
     def model_name(self, value):
         self._model_name = value
+
+    @property
+    def conversation_id(self):
+        return self._conversation_id
+
+    @conversation_id.setter
+    def conversation_id(self, value):
+        self._conversation_id = value
 
     # Returns the conversation history as an editable object
     @property
@@ -51,7 +106,6 @@ class Conversation:
     @options.setter
     def persona(self, value):
         self._options = value
-
 
     @property
     def persona(self):

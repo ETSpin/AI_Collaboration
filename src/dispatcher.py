@@ -1,17 +1,70 @@
 """
 File: dispatcher.py
 Author: MORS
-Date: 20 Dec 25
+Date: 20 DEC 25
 
 Description:
-    Command dispatcher This module receives raw command strings from the main event loop, parses them into their constituent
-    components (command, arguments, and flags), and routes them to the appropriate handler within the system.
+Lightweight command-routing layer for the application. The dispatcher receives
+raw command strings from the AppController (typically via the CLI REPL), parses
+them into structured arguments, and forwards them to the appropriate subsystem.
+It supports two command namespaces:
 
-    The dispatcher is intentionally lightweight and modular. Each command handler is responsible for validating its own arguments and flags,
-    enforcing defaults, and returning a human-readable response string suitable for display in the GUI output window.
+   • System commands (prefixed with "/")
+   • Conversation commands (prefixed with "-")
+
+Each namespace has its own keyword table, argument schema, and handler
+functions. The dispatcher itself performs no business logic; it only parses,
+validates, and routes commands to the correct handler.
 
 Responsibilities:
-    TBD...
+   - Tokenize raw command strings using shlex.
+   - Identify the command namespace (system vs. conversation).
+   - Build argparse parsers dynamically based on keyword metadata.
+   - Validate arguments and flags for each command.
+   - Route parsed arguments to the appropriate handler function.
+   - Provide help listings for both system and conversation commands.
+   - Surface errors cleanly without terminating the application.
+
+Not Responsible For:
+   - Mutating conversation state (delegated to ConversationManager).
+   - Running models or modifying model settings (delegated to ModelManager,
+     ConversationManager, or AppController).
+   - Loading files or directories into context (delegated to ContextLoader).
+   - Monitoring system resources (delegated to RuntimeMonitor).
+   - Installing or uninstalling models (delegated to Utils / ModelManager).
+   - Rendering GUI output or managing GUI state.
+
+Public API Contract:
+
+   System Command Entry Point:
+     - system_dispatch(cmd, conversation)
+         Inputs: raw command string (no leading "/"), Conversation object
+         Outputs: none
+         Notes: parses and routes system-level commands
+
+   Conversation Command Entry Point:
+     - conversation_dispatch(cmd, conversation)
+         Inputs: raw command string (no leading "-"), Conversation object
+         Outputs: none
+         Notes: parses and routes conversation-level commands
+
+   System Handlers:
+     - system_display(attribute, conversation)
+     - system_update(attribute, value, conversation)
+     - system_show_model_info(attribute)
+     - system_install_model(attribute)
+     - system_uninstall_model(attribute)
+     - system_show_stats(attribute)
+     - system_help_command()
+
+   Conversation Handlers:
+     - load_file(conversation, path)
+     - load_directory(conversation, path)
+     - conversation_help()
+
+   Parser Builders:
+     - system_parserbuilder(cmdword)
+     - conversation_parserbuilder(cmdword)
 
 --- Needs to be refactored to clean up repeat code between system and conversation commands 
 """

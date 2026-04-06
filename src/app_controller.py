@@ -12,16 +12,16 @@ central lifecycle for creating, switching, and running conversations.
    - Maintain a registry of all Conversation objects created during runtime.
    - Track which conversation is currently active.
    - Create new conversations via create_conversation().
-   - Generate unique conversation IDs via Utils.generate_conv_id().
+   - Assign unique conversation IDs via Utils.generate_conv_id().
    - Switch the active conversation via switch_conversation().
-   - Run the initial model turn for a new conversation.
+   - Run the initial model turn for a new conversation (persona introduction).
    - Provide a unified lifecycle entry point via start_new_conversation().
-   - Manage the REPL loop for user input and command dispatch.
+   - Manage the CLI REPL loop for user input and command dispatch.
    - Route slash commands to dispatcher.system_dispatch().
    - Route dash commands to dispatcher.conversation_dispatch().
    - Append user and AI messages via ConversationManager.
-   - Provide placeholder hooks for GUI updates (chat + thinking displays).
-   - Provide a placeholder for context integration.
+   - Integrate with GUI mode via update_chat_display() and update_thinking_display().
+   - Support GUI-driven temperature/model option updates through the Conversation object.
 
  Not Responsible For:
    - Implementing model logic (delegated to ModelRunner).
@@ -37,7 +37,7 @@ central lifecycle for creating, switching, and running conversations.
      - __init__()
          Inputs: none
          Outputs: AppController instance
-         Notes: initializes conversation registry and active ID
+         Notes: initializes conversation registry, active ID, and GUI reference
 
      - conversations (property)
          Inputs: none
@@ -76,7 +76,7 @@ central lifecycle for creating, switching, and running conversations.
      - run_initial_conversation_turn(conv_id)
          Inputs: conv_id
          Outputs: model response or False
-         Notes: runs persona introduction turn
+         Notes: rruns persona introduction turn and pushes output to GUI/CLI
 
      - start_new_conversation(persona_name)
          Inputs: persona_name
@@ -87,25 +87,20 @@ central lifecycle for creating, switching, and running conversations.
          Inputs: none
          Outputs: list[str]
 
-     - run_user_turn()
-         Inputs: none
-         Outputs: none
-         Notes: placeholder for future user-turn abstraction
+     - run_conversation_turn(user_input)
+         Inputs: user_input
+         Outputs: response.message.content [str]
+         Notes: runs one turn of the conversation (user input - computer response)
 
-     - update_chat_display(output_chunk, window_id=None)
-         Inputs: output_chunk, window_id
+     - update_chat_display(text, window_id=None)
+         Inputs: text, window_id
          Outputs: none
-         Notes: GUI placeholder
+         Notes: Groutes output to GUI if present, otherwise prints to CLI
 
      - update_thinking_display(output_chunk, window_id=None)
          Inputs: output_chunk, window_id
          Outputs: none
          Notes: GUI placeholder
-
-     - integrate_context()
-         Inputs: none
-         Outputs: none
-         Notes: placeholder for context injection logic
 
    Static Methods:
      - None
@@ -125,6 +120,7 @@ class AppController:
     def __init__(self):
         self._conversations = {}
         self._active_conversation_id = None
+        self.gui = None
 
     @property
     def conversations(self):
@@ -168,6 +164,8 @@ class AppController:
     def create_conversation(self, persona_name):
         conversation = ContextManager.start_conversation(persona_name) 
         conv_id = Utils.generate_conv_id()
+        conversation.conversation_id = conv_id
+
         self.conversations[conv_id] = conversation
         return conv_id
 
@@ -195,9 +193,15 @@ class AppController:
         
         return response.message.content
     
-    #
+    # Return basic information about "available" conversations
     def list_conversations(self):
-        pass
+        convo_list_info = []
+        for convo_id, convo_obj in self.conversations.items():
+            entry = {"id": convo_id, "persona": convo_obj.persona,"model": convo_obj.model_name, "title": getattr(convo_obj, "title", None), "created_at": getattr(convo_obj, "created_at", None),
+                "updated_at": getattr(convo_obj, "updated_at", None),}
+            convo_list_info.append(entry)
+    
+        return convo_list_info
     
     # First model response (persona introduction)
     def run_initial_conversation_turn(self, conv_id):
@@ -206,7 +210,8 @@ class AppController:
         conversation = self.conversations[conv_id]
         response = ModelRunner.run_conversation(model=conversation.model_name, messages=conversation.messages, options=conversation.options)
         ConversationManager.add_ai_response(conversation, response)
-        print(f"{conversation.persona.capitalize()}:", response.message.content)
+        self.update_chat_display(f"{conversation.persona.capitalize()}: {response.message.content}\n"
+)
 
     # Create and start a new conversation
     def start_new_conversation(self, persona_name):
@@ -217,14 +222,25 @@ class AppController:
         self.run_initial_conversation_turn(conversation_id)
         return conversation_id
 
-    # Update the chat display with the response from the model
-    def update_chat_display(self, output_chunk, window_id=None):
-        pass
+    def get_active_conversation_summary(self):
+        conv = self.active_conversation
+        if not conv:
+            return None
+        return {
+            "id": self.active_conversation_id,
+            "persona": conv.persona,
+            "title": conv.title,
+            "messages": conv.messages,
+        }
+
+    # Update the chat display with the response from the model - enables CLI or GUI 
+    def update_chat_display(self, text, window_id=None):
+        if self.gui is not None:
+            self.gui.chat_display.insert("end", text)
+            self.gui.chat_display.see("end")
+        else:
+            print(text)
     
     # Update the thinking display during streaming output
     def update_thinking_display(self, output_chunk, window_id=None):
-        pass
-
-    # Integrate context data into the model prompt when needed
-    def integrate_context(self):
         pass
