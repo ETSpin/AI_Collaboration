@@ -106,34 +106,34 @@ central lifecycle for creating, switching, and running conversations.
      - None
 """
 
+import json
+import os
 
 import dispatcher
 from context_manager import ContextManager
-from conversation import Conversation
 from conversation_manager import ConversationManager
-from model_runner import ModelRunner
 from utils import Utils
 
 
 class AppController:
-    
-    # AppController object initator 
+    # AppController object initator
     def __init__(self):
         self._conversations = {}
         self._active_conversation_id = None
         self.gui = None
 
+        self.personas = self._load_personas()
+
         self.context_manager = ContextManager()
-        self.context_manager.load_personas()
 
     @property
     def conversations(self):
         return self._conversations
-    
+
     @property
     def active_conversation_id(self):
         return self._active_conversation_id
-    
+
     @property
     def active_conversation(self):
         return self._conversations.get(self._active_conversation_id)
@@ -151,51 +151,43 @@ class AppController:
                 break  # exit on blank input
             conv = self.active_conversation
 
-            # Slash and Dash commands
+            # Slash commands → system dispatcher
             if user_input.startswith("/"):
                 dispatcher.system_dispatch(user_input[1:], conv)
                 continue
 
+            # Dash commands → conversation dispatcher
             if user_input.startswith("-"):
                 dispatcher.conversation_dispatch(user_input[1:], conv)
                 continue
-            
-            conversation_turn = self.run_conversation_turn(user_input)
-            print(f"{conv.persona.capitalize()}:", conversation_turn)
 
+            response_text = self.run_conversation_turn(user_input)
+            self.update_chat_display(f"{response_text}\n")
 
     # Creates the conversation and assigns it to the conversations dict with an id
-    def create_conversation(self, persona_name, user_overrides=None): #user override will be fleshed out later
+    def create_conversation(self, persona_name, user_overrides=None):  # user override will be fleshed out later
         print("[AppController] Creating conversation...")
 
-        persona = self.context_manager.get_persona(persona_name)
+        persona = self.context_manager.get_persona(self.personas, persona_name)
         if persona is None:
             print(f"[AppController] Persona '{persona_name}' not found.")
             return None
-        persona_defaults = persona["defaults"]
+
+        context_components = self.context_manager.build_context_components(persona)
         model_name = persona["model"]
-        model_options = {"num_ctx": persona_defaults.get("num_ctx"), "temperature": persona_defaults.get("temperature"), "top_p": persona_defaults.get("top_p"), "top_k": persona_defaults.get("top_k"), "repeat_penalty": persona_defaults.get("repeat_penalty"),}
-        model_options = {k: v for k, v in model_options.items() if v not in ("", None)} #remove blanks
+        persona_defaults = persona["defaults"]
+        conversation = ConversationManager.start_conversation(
+            persona_name=persona_name, persona_dict=persona, context_components=context_components, default_settings=persona_defaults, model_name=model_name
+        )
 
-        start_messages = [{"role": "system", "content": persona.get("personality") or ""},{"role": "user", "content": "Hello."}]
-
-        """ This will come later
-        Merge defaults with user overrides
-        merged_options = copy of persona_defaults
-        if user_overrides is not None:
-        merged_options.update(user_overrides) 
-        """
-        conversation = Conversation(model_name=model_name,messages=start_messages,model_options=model_options)
-        #conversation = self.context_manager.start_conversation(persona_name=persona_name,model_name=model_name,options=persona_defaults) 
-        
-        conversation._persona = persona_name
         conv_id = Utils.generate_conv_id()
         conversation.conversation_id = conv_id
 
         self.conversations[conv_id] = conversation
+
         return conv_id
 
-    # Entry point for the application 
+    # Entry point for the application
     def app_run(self):
         self.app_start()
         self.app_repl()
@@ -205,48 +197,59 @@ class AppController:
         if conv_id in self.conversations:
             self._active_conversation_id = conv_id
             return True
-        
+
         print(f"No conversation with id: {conv_id}")
         return False
-    
+
     # This handles one turn of the conversation
     def run_conversation_turn(self, user_input):
         conv = self.active_conversation
-        
+
         ConversationManager.add_user_message(conv, user_input)
-        response = ModelRunner.run_conversation(model=conv.model_name,messages=conv.messages, options=conv.options)
+        response = ConversationManager.run_model(conv)
         ConversationManager.add_ai_response(conv, response)
-        
+
         return response.message.content
-    
+
     # Return basic information about "available" conversations
     def list_conversations(self):
         convo_list_info = []
         for convo_id, convo_obj in self.conversations.items():
-            entry = {"id": convo_id, "persona": convo_obj.persona,"model": convo_obj.model_name, "title": getattr(convo_obj, "title", None), "created_at": getattr(convo_obj, "created_at", None),
-                "updated_at": getattr(convo_obj, "updated_at", None),}
+            entry = {
+                "id": convo_id,
+                "model": convo_obj.model_name,
+                "model_settings": convo_obj.model_settings,
+                "title": getattr(convo_obj, "title", None),
+                "created_at": getattr(convo_obj, "created_at", None),
+                "updated_at": getattr(convo_obj, "updated_at", None),
+            }
             convo_list_info.append(entry)
-    
+
         return convo_list_info
-    
+
     # First model response (persona introduction)
     def run_initial_conversation_turn(self, conv_id):
         if conv_id not in self.conversations:
             return False
         conversation = self.conversations[conv_id]
-        response = ModelRunner.run_conversation(model=conversation.model_name, messages=conversation.messages, options=conversation.options)
+        response = ConversationManager.run_model(conversation)
         ConversationManager.add_ai_response(conversation, response)
-        self.update_chat_display(f"{conversation.persona.capitalize()}: {response.message.content}\n"
-)
+        self.update_chat_display(f"{response.message.content}\n")
+        self.gui.chat_display.insert("end", "──────────────────────────────\n\n")
+        self.gui.chat_display.see("end")
 
     # Create and start a new conversation
     def start_new_conversation(self, persona_name):
-        if self.context_manager.get_persona(persona_name) is None:
+        if self.context_manager.get_persona(self.personas, persona_name) is None:
             print(f"[AppController] Persona '{persona_name}' not found.")
             return None
         conversation_id = self.create_conversation(persona_name)
+        if conversation_id is None:
+            return None
+
         self.switch_conversation(conversation_id)
         self.run_initial_conversation_turn(conversation_id)
+
         return conversation_id
 
     def get_active_conversation_summary(self):
@@ -255,19 +258,48 @@ class AppController:
             return None
         return {
             "id": self.active_conversation_id,
-            "persona": conv.persona,
+            "model": conv.model_name,
+            "model_settings": conv.model_settings,
             "title": conv.title,
             "messages": conv.messages,
+            "created_at": getattr(conv, "created_at", None),
+            "updated_at": getattr(conv, "updated_at", None),
         }
 
-    # Update the chat display with the response from the model - enables CLI or GUI 
+    # Update the chat display with the response from the model - enables CLI or GUI
     def update_chat_display(self, text, window_id=None):
         if self.gui is not None:
             self.gui.chat_display.insert("end", text)
             self.gui.chat_display.see("end")
         else:
-            print(text)
-    
-    # Update the thinking display during streaming output
+            # CLI mode
+            print(text, end="")
+
+    # Optional: update the GUI thinking indicator during streaming output
     def update_thinking_display(self, output_chunk, window_id=None):
-        pass
+        if self.gui is not None:
+            # GUI mode: append partial output to a "thinking" widget if present
+            if hasattr(self.gui, "thinking_display"):
+                self.gui.thinking_display.insert("end", output_chunk)
+                self.gui.thinking_display.see("end")
+        else:
+            # CLI mode: do nothing (streaming not required)
+            pass
+
+    # Persona loader from read personalities.json 
+    def _load_personas(self):
+        base_dir = os.path.dirname(__file__)
+        personas_path = os.path.join(base_dir, "./personalities.json")
+
+        if not os.path.exists(personas_path):
+            print(f"[AppController] Persona file not found: {personas_path}")
+            return {}
+
+        with open(personas_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        if not isinstance(data, dict):
+            print("[AppController] Invalid persona file format (expected dict).")
+            return {}
+
+        return data

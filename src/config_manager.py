@@ -6,8 +6,6 @@ Date: 20 Dec 25
 Description:
 Centralizes access to runtime settings, allowing the system to load configuration
 values from files, environment variables, or default settings. 
-By isolating configuration logic, the rest of the system remains clean, predictable, and
-easy to test.
 
 Usage:
 Imported by main.py or any subsystem requiring configuration values.

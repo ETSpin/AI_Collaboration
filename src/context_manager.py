@@ -1,87 +1,106 @@
 """
 Class: ContextManager
 Author: MORS
-Date: 22 MAR 26
+Date: 22 MAR 26 (Refactored 11 APR 26)
 
 Description:
-Handles any user provided files and an ability to import data from a library
-- Will likley also handle other tool(s) or methods for the model to be able to get additional information (web, other local tools, etc.)
+Pure static utility class for working with persona definitions.
+ContextManager does NOT load JSON, store state, or create conversations.
+All persona data is provided externally - by AppController(usually).
 
-Usage:
-TBD...
+Responsibilities:
+    - Validate persona definitions
+    - Retrieve persona metadata
+    - List available personas
+    - Build structured context components for ConversationManager
+    - Provide default model settings for a persona
 
+Not Responsible For:
+    - Loading personalities.json
+    - Storing personas
+    - Creating Conversation objects
+    - Injecting context into conversations
+    - Handling file uploads or external tools
+
+Public API Contract:
+    Static Methods (persona validation):
+        validate_persona(persona_key, persona_dict) -> bool
+
+    Static Methods (persona retrieval):
+        get_persona(personas_dict, name) -> dict | None
+        list_personas(personas_dict) -> list
+
+    Static Methods (persona components):
+        get_default_settings(persona_dict) -> dict
+        get_model_name(persona_dict) -> str
+        get_prompt_prefix(persona_dict) -> str
+        get_personality_text(persona_dict) -> str
+        get_rules(persona_dict) -> str
+        build_context_components(persona_dict) -> dict
 """
-import copy
-import json
-from pathlib import Path
 
-from conversation import Conversation
+import copy
 
 
 class ContextManager:
-    def __init__(self):
-        self._persona_file_path = "./src/personalities.json" #we'll look at cleaning this up with another directory later
-        self._personas = []
-        
-        self.load_personas()
-
-    # Load the persona file from the persona
-    def load_personas(self):
-        path = Path(self._persona_file_path)
-        if not path.exists():
-            print(f"Persona file not found: {path}")
-            return False
-
-        with path.open("r", encoding="utf-8") as f:
-            temp_personas_dict = json.load(f)
-
-        if "_comment" in temp_personas_dict:
-            del temp_personas_dict["_comment"]
-
-        for persona_key, persona_data in temp_personas_dict.items():
-            if not self.validate_persona(persona_key, persona_data):
-                print(f"Validation failed for persona '{persona_key}'")
-                return False
-        
-        self._personas = temp_personas_dict
-        return True
-
-    # Get the Personal from the loaded personas
-    def get_persona(self, name):
-        if name not in self._personas:
-            print(f"[ContextManager] Persona {name} not found in available personas")
-            return None
-        return copy.deepcopy(self._personas[name])
-    
-    # Helper function - returns a list of the available personas - along with their descriptions
-    def list_personas(self):
-        persona_list = []
-
-        for key, data in self._personas.items():
-            persona_list.append({"key": key,"name": data["name"], "description": data["description"]})
-
-        print(f"[ContextManager] No Error just info --- Available personas: {[p['key'] for p in persona_list]}")
-        return sorted(persona_list, key=lambda p: p["name"].lower())  # this is a list of keys and descriptions in self._personas
-
-    # Helper function - ensures the personas are in the correct format -- will save time later
-    def validate_persona(self, key, data):
+    # Ensures a persona is in the correct format and contains all required fields
+    @staticmethod
+    def validate_persona(key, data):
         required_top_level_fields = ["name", "prompt_prefix", "model", "personality", "rules", "defaults", "description"]
 
         for field in required_top_level_fields:
             if field not in data:
-                print(f"Persona '{key}' missing field '{field}'")
-                return False
+                raise ValueError(f"[ContextManager] Persona '{key}' missing field '{field}'")
 
-        required_defaults = ["num_ctx", "temperature", "top_p","top_k", "repeat_penalty"]
+        required_defaults = ["num_ctx", "temperature", "top_p", "top_k", "repeat_penalty"]
 
         for field in required_defaults:
             if field not in data["defaults"]:
-                print(f"Persona '{key}' missing default requirement: '{field}'")
-                return False
+                raise ValueError(f"Persona '{key}' missing default setting: '{field}'")
 
-        return True
+    # Returns a deep copy of the persona definition
+    @staticmethod
+    def get_persona(personas, name):
+        if name not in personas:
+            return None
+        return copy.deepcopy(personas[name])
 
-    # Create and return a fully-initialized Conversation object based on the selected personality profile.
+    # Returns a sorted list of persona metadata: [{ "key": ..., "name": ..., "description": ... }]
+    @staticmethod
+    def list_personas(personas: dict):
+        persona_list = []
+
+        for key, persona_data in personas.items():
+            persona_list.append({"key": key, "name": persona_data["name"], "description": persona_data["description"]})
+        return sorted(persona_list, key=lambda item: item["name"].lower())
+
+    @staticmethod
+    def get_default_settings(persona: dict):
+        return copy.deepcopy(persona["defaults"])
+
+    @staticmethod
+    def get_model_name(persona: dict):
+        return persona["model"]
+
+    @staticmethod
+    def get_prompt_prefix(persona: dict):
+        return persona["prompt_prefix"]
+
+    @staticmethod
+    def get_personality_text(persona: dict):
+        return persona["personality"]
+
+    @staticmethod
+    def get_rules(persona: dict):
+        return persona["rules"]
+
+    # Returns a structured dictionary containing the persona's personality, rules, and prompt prefix.
+    @staticmethod
+    def build_context_components(persona):
+        return {"prompt_prefix": persona["prompt_prefix"], "personality": persona["personality"], "rules": persona["rules"]}
+
+"""      
+# Create and return a fully-initialized Conversation object based on the selected personality profile.
     @staticmethod
     def start_conversation(persona_name: str):
         # Gets the personality profile from the dictionary of personalities -- returns an error it doesn't exist
@@ -98,7 +117,6 @@ class ContextManager:
             "top_k": persona.get("top_k"),
             "repeat_penalty": persona.get("repeat_penalty"),
         }
-
         # dictionary comprehension to remove blanks from the model_options dictionary
         model_options = {k: v for k, v in model_options.items() if v not in ("", None)}
 
@@ -120,7 +138,8 @@ class ContextManager:
 
         # Update the conversation personality
         conversation.persona = persona_name
-        return conversation
+        return conversation 
+
 
     # This fucntion updates the starting conversation from the system with new context
     # This should prevent issues with adding system context after starting a conversation
@@ -129,39 +148,5 @@ class ContextManager:
         system_msg = conversation.messages[0]
         system_msg["content"] += "\n\n" + block["contents"]
         conversation.messages[0] = system_msg
-    
-    """Accept user's file input """
-    def build_prompt(self, input_file):
-        pass
-       
-    """Accept user's file input """
-    def accept_file_upload(self, input_file):
-        pass
 
-    """Determine the type of file uploaded by the user """
-    def detect_file_type(self, input_file):
-        pass
-
-    """Actually extract data from the uploaded file"""
-    def extract_data(self, input_file):
-        pass
-
-    """Store the the extracted data from the file for the model to be able to access"""
-    def store_context_data(self, data):
-        pass
-
-    """Returns a list of the user pushed files being used in the context"""
-    def get_context_data(self):
-        pass
-
-    """Remove the the extracted data from the model's context for future 'thinking' """
-    def remove_context_data(self, data):
-        pass
-
-    """Load additional context data from a local library or repository"""
-    def load_library_files(self, directory):
-        pass
-
-    """Returns a list of the local library or repository items used for additional context"""
-    def get_library_list(self):
-        pass
+"""

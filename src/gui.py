@@ -138,9 +138,10 @@ class Gui:
         )
         self.chat_display.place(x=10, y=20, width=870, height=1220)
 
-        self.entry_1 = tk.Entry(
+        self.entry_1 = tk.Text(
             self.root, font=("Arial", 12),
-            bg="#ffffff", fg="#000000"
+            bg="#ffffff", fg="#000000",
+            wrap="word"
         )
         self.entry_1.place(x=10, y=1260, width=740, height=120)
         #self.entry_1.insert(0, "Enter text...")
@@ -265,20 +266,9 @@ class Gui:
         self.textarea_4.place(x=RIGHT_X, y=1130, width=RIGHT_W, height=260)
 
     # ============================================================
-    # TEMPERATURE SLIDER CALLBACK
-    # ============================================================
-    def on_temp_change(self, value):
-        self.update_persona_image(float(value))
-
-    # ============================================================
     # UPDATE PERSONA IMAGE (NO DRIFT VERSION)
     # ============================================================
     def update_persona_image(self, temp):
-        """
-        Clean, stable, drift-proof persona renderer.
-        Uses preloaded individual frames.
-        """
-
         # 1. Select frame
         index = min(9, max(0, int(temp * 9)))
         frame = self.frames[index]
@@ -331,14 +321,15 @@ class Gui:
     # BUTTON HANDLER
     # ============================================================
     def on_button_1_click(self):
-        text = self.entry_1.get()
-        persona = self.controller.active_conversation.persona
-
-        self.entry_1.delete(0, "end")
+        text = self.entry_1.get("1.0", "end").strip()
+        self.entry_1.delete("1.0", "end")
+        
+        persona = self.controller.active_conversation.persona_dict.get("name", "AI")
         
         self.chat_display.insert("end", f"User: {text}\n")
         response = self.controller.run_conversation_turn(text)
-        self.chat_display.insert("end", f"{persona}: {response}\n")
+        self.chat_display.insert("end", f"{persona}: {response}\n\n")
+        self.chat_display.insert("end", "──────────────────────────────\n\n")
         self.chat_display.see("end")
 
         self.update_context_panel()
@@ -350,12 +341,15 @@ class Gui:
 
             context_text = []
             context_text.append(f"Conversation ID: {conv.conversation_id}")
-            context_text.append(f"Persona: {conv.persona}")
+            context_text.append(f"Persona: {conv.persona_dict.get('name', 'Unknown')}")
             context_text.append(f"Model: {conv.model_name}")
-            context_text.append(f"num_ctx: {conv.options["num_ctx"]}")
-            context_text.append(f"Temperature: {conv.options["temperature"]}")
-            context_text.append(f"top_p: {conv.options["top_p"]}")
-            context_text.append(f"Repeat Penalty: {conv.options["repeat_penalty"]}")
+
+            settings = conv.model_settings
+
+            context_text.append(f"num_ctx: {settings.get('num_ctx')}")
+            context_text.append(f"Temperature: {settings.get('temperature')}")
+            context_text.append(f"top_p: {settings.get('top_p')}")
+            context_text.append(f"Repeat Penalty: {settings.get('repeat_penalty')}")
 
             self.textarea_3.delete("1.0", "end")
             self.textarea_3.insert("end", "\n".join(context_text))
@@ -367,7 +361,9 @@ class Gui:
         # update model options
         if self.controller and self.controller.active_conversation:
             conv = self.controller.active_conversation
-            conv.options["temperature"] = temp
+            conv.model_settings["temperature"] = temp
+            self.update_context_panel()
+
 
 
 if __name__ == "__main__":
