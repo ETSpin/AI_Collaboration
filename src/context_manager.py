@@ -41,6 +41,8 @@ Public API Contract:
 
 import copy
 
+import tiktoken
+
 
 class ContextManager:
     # Ensures a persona is in the correct format and contains all required fields
@@ -98,6 +100,13 @@ class ContextManager:
     @staticmethod
     def build_context_components(persona):
         return {"prompt_prefix": persona["prompt_prefix"], "personality": persona["personality"], "rules": persona["rules"]}
+    
+    # Returns a fairly accurate estimate of tokens that would be used for a given text str
+    def count_tokens(text):
+        if not text:
+            return 0
+        enc = tiktoken.get_encoding("cl100k_base")
+        return len(enc.encode(text))
 
 """      
 # Create and return a fully-initialized Conversation object based on the selected personality profile.

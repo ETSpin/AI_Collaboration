@@ -55,6 +55,25 @@ class RuntimeMonitor:
         gpu_util, _, _ = data
         return gpu_util
 
+    # Return the total VRAM on the current system
+    @staticmethod
+    def get_vram_total():
+        data = RuntimeMonitor._run_nvidia_smi()
+        if data is None:
+            return None
+        _, _, mem_total = data
+        return mem_total
+    
+    # Return the available VRAM on the current system
+    @staticmethod
+    def get_vram_available():
+        data = RuntimeMonitor._run_nvidia_smi()
+        if data is None:
+            return None
+        _, mem_used, mem_total = data
+        mem_avail = mem_total-mem_used
+        return mem_avail
+
     # Return VRAM usage statistics, or None if unavailable
     @staticmethod
     def get_vram_usage():
