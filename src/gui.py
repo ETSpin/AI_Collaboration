@@ -77,6 +77,8 @@ from tkinter import ttk
 
 from PIL import Image, ImageFilter, ImageTk
 
+from dispatcher import conversation_dispatch, system_dispatch
+
 
 class Gui:
     def __init__(self, root, controller):        
@@ -324,6 +326,17 @@ class Gui:
         text = self.entry_1.get("1.0", "end").strip()
         self.entry_1.delete("1.0", "end")
         
+            # NEW: route commands BEFORE anything else
+        if text.startswith("/"):
+            system_dispatch(text[1:], self.controller.active_conversation)
+            self.update_context_panel()
+            return
+
+        if text.startswith("-"):
+            conversation_dispatch(text[1:], self.controller.active_conversation)
+            self.update_context_panel()
+            return
+
         persona = self.controller.active_conversation.persona_dict.get("name", "AI")
         
         self.chat_display.insert("end", f"User: {text}\n")
@@ -343,13 +356,16 @@ class Gui:
             context_text.append(f"Conversation ID: {conv.conversation_id}")
             context_text.append(f"Persona: {conv.persona_dict.get('name', 'Unknown')}")
             context_text.append(f"Model: {conv.model_name}")
+            context_text.append(f"Model max tokens: {conv.tokens_model_max}")
 
             settings = conv.model_settings
 
-            context_text.append(f"num_ctx: {settings.get('num_ctx')}")
-            context_text.append(f"Temperature: {settings.get('temperature')}")
-            context_text.append(f"top_p: {settings.get('top_p')}")
-            context_text.append(f"Repeat Penalty: {settings.get('repeat_penalty')}")
+            context_text.append(f"Current num_ctx: {settings.get('num_ctx')}")
+            context_text.append(f"Current temperature: {settings.get('temperature')}")
+            context_text.append(f"Current top_p: {settings.get('top_p')}")
+            context_text.append(f"Current repeat penalty: {settings.get('repeat_penalty')}")
+
+
 
             self.textarea_3.delete("1.0", "end")
             self.textarea_3.insert("end", "\n".join(context_text))

@@ -189,3 +189,13 @@ class ModelManager:
 
         except Exception as e:
             return f"[ModelManager] Error retrieving model list: {e}"
+        
+    # Return the Paramaters about a model
+    @staticmethod
+    def get_model_paramaters(model):
+        try:
+            result = subprocess.run(["ollama", "show", model, "--json"], capture_output=True, text=True, check=True)
+            return result.stdout
+
+        except Exception:
+            return None

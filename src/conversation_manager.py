@@ -46,6 +46,7 @@ Public API Contract:
         get_conversation_info(conversation)
 """
 
+import json
 from datetime import datetime, timezone
 
 from conversationobject import ConversationObject
@@ -67,7 +68,11 @@ class ConversationManager:
 
         # Create the conversation object
         conversation = ConversationObject(
-            model_name=model_name, messages=start_messages, model_settings=default_settings, persona_name=persona_name, persona_dict=persona_dict, context_components=context_components)
+            model_name=model_name, messages=start_messages, model_settings=default_settings, persona_name=persona_name, persona_dict=persona_dict, context_components=context_components
+        )
+
+        # Set the model's max token window
+        ConversationManager.set_model_max_tokens(conversation)
 
         # Validate settings immediately
         ModelManager.validate_settings(conversation)
@@ -129,3 +134,23 @@ class ConversationManager:
     @staticmethod
     def get_conversation_info(conversation):
         return str(conversation)
+
+    # Using Ollama metadata to determine the model's max token - if  missing or malformed, default to 2048.
+    @staticmethod
+    def set_model_max_tokens(conversation):
+        default_max = 2048  # Ollama's default max tokens
+        model_name = conversation.model_name
+
+        try:
+            metadata_json = ModelManager.get_model_paramaters(model_name)
+            data = json.loads(metadata_json)
+
+            ctx = data.get("details", {}).get("context_length") or data.get("context_length")
+
+            if isinstance(ctx, int):
+                conversation.tokens_model_max = ctx
+            else:
+                conversation.tokens_model_max = default_max
+
+        except Exception:
+            conversation.tokens_model_max = default_max

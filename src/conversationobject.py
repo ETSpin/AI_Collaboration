@@ -63,8 +63,6 @@ Public API Contract:
 
 from datetime import datetime, timezone
 
-from runtime_monitor import RuntimeMonitor
-
 
 class ConversationObject:
     # Represents a fully assembled conversational state at a single point in time.
@@ -86,11 +84,7 @@ class ConversationObject:
         self._title = None #(summary of the conversation)
         self._prompt_name = prompt_name
 
-        self.tokens_hardware_max = RuntimeMonitor.get_vram_total
         self.tokens_model_max = 0
-        self.tokens_used = 0
-        self.tokens_available = 0
-        
         
     # -------------------------
     # Properties

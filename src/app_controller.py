@@ -112,6 +112,7 @@ import os
 import dispatcher
 from context_manager import ContextManager
 from conversation_manager import ConversationManager
+from runtime_monitor import RuntimeMonitor
 from utils import Utils
 
 
@@ -125,6 +126,7 @@ class AppController:
         self.personas = self._load_personas()
 
         self.context_manager = ContextManager()
+        self.tokens_system_max = RuntimeMonitor.estimate_tokens_hardware_max()
 
     @property
     def conversations(self):
