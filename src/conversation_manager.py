@@ -1,5 +1,5 @@
 """
-Class: ConversationManager
+File: conversation_manager.py
 Author: MORS
 Date: 11 APR 26
 
@@ -7,43 +7,50 @@ Description:
 Coordinates persona components, model settings, and message flow for a single
 conversation. ConversationManager does NOT load personas, store global state,
 or interact with external systems beyond calling the model. It assembles the
-three components of a conversation (model, context, messages) and manages the
-conversation lifecycle.
+model, context, and message components and manages the conversation lifecycle.
 
 Responsibilities:
-    - Create new conversations using persona/context components
-    - Insert system, user, and assistant messages via MessageManager
-    - Manage conversation history
-    - Switch models or personas (when requested)
-    - Apply and validate model settings via ModelManager
-    - Call the model and return the AI response (Option A requirement)
+    - Create new conversations using persona/context components.
+    - Insert system, user, and assistant messages via MessageManager.
+    - Manage conversation history and timestamps.
+    - Switch models or personas when requested.
+    - Apply and validate model settings via ModelManager.
+    - Call the model and return the AI response.
+    - Maintain model token window metadata.
 
 Not Responsible For:
-    - Loading personalities.json
-    - Storing personas
-    - Building persona/context components (ContextManager does that)
-    - Formatting or styling messages (MessageManager does that)
-    - GUI interaction (AppController does that)
+    - Loading personalities.json.
+    - Storing personas or global state.
+    - Building persona/context components (ContextManager does that).
+    - Formatting or styling messages (MessageManager does that).
+    - GUI interaction (AppController does that).
+    - Dispatching commands or routing user input.
 
 Public API Contract:
+
     Static Methods (conversation lifecycle):
-        start_conversation(persona_name, persona_dict, context_components, default_settings, model_name)
-        reset_conversation(conversation)
+        - start_conversation(persona_name, persona_dict, context_components,
+                            default_settings, model_name)
+        - reset_conversation(conversation)
 
     Static Methods (message flow):
-        add_user_message(conversation, input_message)
-        add_ai_response(conversation, response)
-        add_ai_metadata(conversation, response)
+        - add_user_message(conversation, input_message)
+        - add_ai_response(conversation, response)
+        - add_ai_metadata(conversation, response)
 
     Static Methods (model interaction):
-        run_model(conversation)
-        assemble_messages(conversation)
+        - run_model(conversation)
+        - assemble_messages(conversation)
 
     Static Methods (conversation queries):
-        get_model(conversation)
-        set_model(conversation, new_model)
-        history(conversation)
-        get_conversation_info(conversation)
+        - get_model(conversation)
+        - set_model(conversation, new_model)
+        - history(conversation)
+        - get_conversation_info(conversation)
+
+    Static Methods (model metadata):
+        - set_model_max_tokens(conversation)
+
 """
 
 import json

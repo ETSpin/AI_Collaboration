@@ -1,16 +1,51 @@
 """
-Class: Utils
+File: utils.py
 Author: MORS
 Date: 22 MAR 26
 
 Description:
-Here the utility functions for interacting with the Ollama environment - i.e., find out which models are installed which version is running, etc.
-This will be useful from the start  for  development and debugging purposes
+Utility functions for interacting with the Ollama environment and providing
+generic helpers that do not belong to any subsystem. Includes helpers for
+conversation ID generation and model installation/removal. Stateless and
+model-agnostic.
 
 Responsibilities:
-- Small, generic helpers that do not belong to any subsystem
-- No model logic
-- No conversation logic
+    - Provide small, generic helper functions.
+    - Generate unique conversation IDs.
+    - Install and uninstall Ollama models.
+    - Avoid model logic, conversation logic, or persona logic.
+
+Not Responsible For:
+    - Running models or generating responses.
+    - Managing conversation state or settings.
+    - Loading personas or context.
+    - Querying system telemetry (RuntimeMonitor).
+    - Dispatching commands or REPL behavior.
+
+Public API Contract:
+
+    Static Methods:
+        - generate_conv_id()
+            Inputs: none
+            Outputs: str
+            Notes: Generates a timestamp-based unique conversation ID.
+
+        - install_ollama_model(model)
+            Inputs: model name (str)
+            Outputs: None or error string
+            Notes: Installs a model via the Ollama CLI.
+
+        - uninstall_ollama_model(model)
+            Inputs: model name (str)
+            Outputs: None or error string
+            Notes: Uninstalls a model via the Ollama CLI.
+
+    Instance Methods (placeholders):
+        - list_installed_models()
+        - get_model_info(model_name)
+        - get_ollama_version()
+        - ping_ollama()
+
 
 """
 

@@ -1,42 +1,47 @@
 """
-Class: ContextManager
+File: context_manager.py
 Author: MORS
 Date: 22 MAR 26 (Refactored 11 APR 26)
 
 Description:
 Pure static utility class for working with persona definitions.
 ContextManager does NOT load JSON, store state, or create conversations.
-All persona data is provided externally - by AppController(usually).
+All persona data is provided externally (typically by AppController).
 
 Responsibilities:
-    - Validate persona definitions
-    - Retrieve persona metadata
-    - List available personas
-    - Build structured context components for ConversationManager
-    - Provide default model settings for a persona
+    - Validate persona definitions.
+    - Retrieve persona metadata.
+    - List available personas.
+    - Build structured context components for ConversationManager.
+    - Provide default model settings for a persona.
 
 Not Responsible For:
-    - Loading personalities.json
-    - Storing personas
-    - Creating Conversation objects
-    - Injecting context into conversations
-    - Handling file uploads or external tools
+    - Loading personalities.json.
+    - Storing personas.
+    - Creating Conversation objects.
+    - Injecting context into conversations.
+    - Handling file uploads or external tools.
+    - Running or dispatching models.
 
 Public API Contract:
+
     Static Methods (persona validation):
-        validate_persona(persona_key, persona_dict) -> bool
+        - validate_persona(persona_key, persona_dict) -> bool
 
     Static Methods (persona retrieval):
-        get_persona(personas_dict, name) -> dict | None
-        list_personas(personas_dict) -> list
+        - get_persona(personas_dict, name) -> dict | None
+        - list_personas(personas_dict) -> list
 
     Static Methods (persona components):
-        get_default_settings(persona_dict) -> dict
-        get_model_name(persona_dict) -> str
-        get_prompt_prefix(persona_dict) -> str
-        get_personality_text(persona_dict) -> str
-        get_rules(persona_dict) -> str
-        build_context_components(persona_dict) -> dict
+        - get_default_settings(persona_dict) -> dict
+        - get_model_name(persona_dict) -> str
+        - get_prompt_prefix(persona_dict) -> str
+        - get_personality_text(persona_dict) -> str
+        - get_rules(persona_dict) -> str
+        - build_context_components(persona_dict) -> dict
+
+    Utility Methods:
+        - count_tokens(text) -> int
 """
 
 import copy
@@ -107,55 +112,3 @@ class ContextManager:
             return 0
         enc = tiktoken.get_encoding("cl100k_base")
         return len(enc.encode(text))
-
-"""      
-# Create and return a fully-initialized Conversation object based on the selected personality profile.
-    @staticmethod
-    def start_conversation(persona_name: str):
-        # Gets the personality profile from the dictionary of personalities -- returns an error it doesn't exist
-        persona = ContextManager.personalities.get(persona_name)
-        if persona is None:
-            raise ValueError(f"Unknown personality: {persona_name}")
-
-        # Get the model and its options - based on the personality selected
-        model_name = persona.get("model")
-        model_options = {
-            "num_ctx": persona.get("num_ctx"),
-            "temperature": persona.get("temperature"),
-            "top_p": persona.get("top_p"),
-            "top_k": persona.get("top_k"),
-            "repeat_penalty": persona.get("repeat_penalty"),
-        }
-        # dictionary comprehension to remove blanks from the model_options dictionary
-        model_options = {k: v for k, v in model_options.items() if v not in ("", None)}
-
-
-        # Create the base of the conversation with the configuration message
-        start_messages = [
-            {
-                "role": "system",
-                "content": persona.get("personality") or ""
-            },
-            {
-                "role": "user",
-                "content": "Hello."
-            }
-        ]
-
-        # Create and return the Conversation object
-        conversation = Conversation(model_name=model_name,messages=start_messages,model_options=model_options)
-
-        # Update the conversation personality
-        conversation.persona = persona_name
-        return conversation 
-
-
-    # This fucntion updates the starting conversation from the system with new context
-    # This should prevent issues with adding system context after starting a conversation
-    @staticmethod
-    def inject_context(conversation, block):
-        system_msg = conversation.messages[0]
-        system_msg["content"] += "\n\n" + block["contents"]
-        conversation.messages[0] = system_msg
-
-"""

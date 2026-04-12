@@ -1,5 +1,5 @@
 """
-Class: Conversation
+File: conversationobject.py
 Author: MORS
 Date: 28 MAR 26
 
@@ -7,11 +7,11 @@ Description:
 Represents a single conversational session between the user and an AI persona.
 Stores all stateful information required to run, resume, serialize, or inspect a
 conversation. Acts as a structured container for model configuration, message
-history, metadata, and lifecycle timestamps. A ConversationObject is a structured 
-container holding the three components required to execute a model turn:
+history, metadata, and lifecycle timestamps. A ConversationObject holds the
+three components required to execute a model turn:
 
     1. model_settings   (from ModelManager)
-    2. context_block    (from ContextManager)
+    2. context_components (from ContextManager)
     3. message_history  (from MessageManager)
 
 It is immutable in structure but mutable in content (messages grow, metadata
@@ -20,28 +20,30 @@ its own messages.
 
 Responsibilities:
     - Store the model name used for this conversation.
-    - Store the conversation_id assigned externally.
-    - Hold the context_block (system prompt / persona baseline).
+    - Store the externally assigned conversation_id.
+    - Hold context_components (prompt_prefix, personality, rules).
     - Hold model_settings (temperature, top_p, num_ctx, etc.).
     - Store the message history list (role/content dicts).
     - Track creation and update timestamps.
     - Store metadata, token counts, and optional conversation title.
-    - Store the assistant's prompt_name (e.g., "Jeeves", "Pymetheus").
+    - Store the assistant's prompt_name.
     - Provide read-only accessors for conversation state.
     - Provide readable __str__ and __len__ helpers for debugging.
 
 Not Responsible For:
-    - Running the model (handled by ConversationManager).
-    - Adding or modifying messages (MessageManager).
+    - Running the model (ConversationManager does that).
+    - Adding or modifying messages (MessageManager does that).
     - Generating conversation IDs (AppController/Utils).
     - Managing GUI or CLI output.
     - Loading personas or building context (ContextManager).
-    - Managing model settings (ModelManager).
+    - Managing or validating model settings (ModelManager).
 
 Public API Contract:
+
     Constructor:
         __init__(model_name, conversation_id=None, context_block=None,
-                 model_settings=None, messages=None, prompt_name=None)
+                 persona_name=None, persona_dict=None, model_settings=None,
+                 messages=None, context_components=None, prompt_name="AI agent:")
 
     Properties:
         model_name (get/set)
@@ -59,6 +61,7 @@ Public API Contract:
     Special Methods:
         __len__() → number of message turns
         __str__() → human-readable summary
+
 """
 
 from datetime import datetime, timezone

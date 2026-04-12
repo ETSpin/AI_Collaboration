@@ -11,7 +11,7 @@ Module Docstring:
   FileGenerator, ThinkingDisplay) to keep main.py clean and maintainable. Provides a
   central lifecycle for creating, switching, and running conversations.
 
-   Responsibilities (Post‑Refactor):
+   Responsibilities (Post-Refactor):
      - Maintain a registry of all Conversation objects created during runtime.
      - Track which conversation is currently active.
      - Create new conversations via create_conversation().
@@ -33,7 +33,7 @@ Module Docstring:
      - Managing filesystem context or file ingestion.
      - Exporting files, logs, or external artifacts.
 
-   Public API Contract (Post‑Refactor):
+   Public API Contract (Post-Refactor):
 
      Instance Methods:
 
@@ -97,7 +97,7 @@ Module Docstring:
        - run_user_turn()
            Inputs: none
            Outputs: none
-           Notes: placeholder for future user‑turn abstraction
+           Notes: placeholder for future user-turn abstraction
 
        - update_chat_display(output_chunk, window_id=None)
            Inputs: output_chunk, window_id

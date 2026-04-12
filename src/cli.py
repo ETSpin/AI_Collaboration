@@ -1,24 +1,42 @@
 """
-File: cli.py
+FFile: cli.py
 Author: MORS
 Date: 20 Dec 25
 
 Description:
-Provides a command-line interface.
-This module is responsible for parsing user-supplied arguments, validating them, and routing execution to
-the appropriate subsystems such as ingestion, analysis, or formatting.
+Provides a command-line interface for the application.
+Responsible solely for parsing and validating user-supplied arguments.
+Does not perform routing, ingestion, analysis, or formatting.
 
-Usage:
-Imported by main.py or executed indirectly 
+Responsibilities:
+  - Define command-line arguments using argparse.
+  - Validate and return parsed arguments to the caller.
+  - Support optional model selection, config file path, and verbose mode.
+
+Not Responsible For:
+  - Executing commands or routing logic.
+  - Managing conversations or models.
+  - Loading files, ingesting data, or performing analysis.
+  - Any GUI or REPL behavior.
+
+Public API Contract:
+
+  Functions:
+    - parse_args()
+        Inputs: none
+        Outputs: argparse.Namespace
+        Notes: Returns parsed CLI arguments for use by main.py or other callers.
+
+Static Methods:
+  - None
 """
+
 import argparse
 
 
 # Parses command-line arguments - Returns: argparse.Namespace: Parsed arguments containing user-specified options
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="AI agent locally using Ollama and downloaded models."
-    )
+    parser = argparse.ArgumentParser(description="AI agent locally using Ollama and downloaded models.")
 
     parser.add_argument(
         "--model",

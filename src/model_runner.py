@@ -1,14 +1,55 @@
 """
-Class: ModelRunner
+File: model_runner.py
 Author: MORS
 Date: 22 MAR 26
 
 Description:
-This  class that will hold all of the model interactions between Ollama and Python.
-- will handle single turn or streaming output (conversations in Ollama are basically single_turn, with history reloaded)
+Handles all model interactions between Python and the Ollama runtime. Provides
+single-turn, multi-turn, and (future) streaming execution paths. Does not manage
+conversation state, defaults, or persona logic. Operates strictly as a thin
+execution layer over the Ollama API.
 
 Responsibilities:
-TBD...
+    - Execute single-turn model calls.
+    - Execute multi-turn conversation calls using message history.
+    - Provide hooks for future streaming output.
+    - Provide hooks for resetting or reinitializing model state.
+
+Not Responsible For:
+    - Managing conversation history (MessageManager).
+    - Managing model settings or validation (ModelManager).
+    - Selecting or switching models (ConversationManager).
+    - Loading personas or context (ContextManager).
+    - GUI or REPL behavior (AppController / Gui).
+
+Public API Contract:
+
+    Instance Methods:
+        - set_model(model_name)
+            Inputs: model name (str)
+            Outputs: None
+            Notes: Placeholder for future model selection logic.
+
+        - stream_partial_output(callback)
+            Inputs: callback function
+            Outputs: None
+            Notes: Placeholder for future streaming token output.
+
+        - reset_model_state()
+            Inputs: none
+            Outputs: none
+            Notes: Placeholder for future model reset logic.
+
+    Static Methods:
+        - run_single_turn(model, input_text)
+            Inputs: model name, user text
+            Outputs: Ollama response object
+            Notes: Executes a single user→model turn.
+
+        - run_conversation(model, messages, options)
+            Inputs: model name, message list, model options
+            Outputs: Ollama response object
+            Notes: Executes a multi-turn conversation using full message history.
 
 """
 

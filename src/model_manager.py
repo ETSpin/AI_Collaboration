@@ -1,21 +1,22 @@
 """
-Class: ModelManager
+File: model_manager.py
 Author: MORS
 Date: 22 MAR 26
 
 Description:
-Static utility class responsible for manipulating model-related settings
-inside a ConversationObject and querying system-level model information
-(downloaded, running, and available models).
-
-ModelManager does NOT store defaults, load personalities.json, or maintain
-any internal state. All defaults are provided externally by ConversationManager.
+Static utility class responsible for manipulating model-related settings inside a
+ConversationObject and querying system-level model information (downloaded,
+running, and available models). ModelManager does not store defaults, load
+personas, or maintain internal state. All defaults are provided externally by
+ConversationManager.
 
 Responsibilities:
     - Update model_settings inside a ConversationObject.
     - Validate model_settings values.
     - Provide granular setters for common model parameters.
-    - Provide system-level model queries (downloaded, running, available).
+    - Provide warnings for suboptimal but valid configurations.
+    - Query system-level model information (downloaded, running, available).
+    - Retrieve model metadata from the Ollama CLI.
 
 Not Responsible For:
     - Loading personalities.json (ContextManager).
@@ -25,19 +26,22 @@ Not Responsible For:
     - Holding internal state or defaults.
 
 Public API Contract:
+
     Static Methods (settings):
-        set_temperature(conversation, value)
-        set_top_p(conversation, value)
-        set_top_k(conversation, value)
-        set_num_ctx(conversation, value)
-        set_repeat_penalty(conversation, value)
-        validate_settings(conversation)
-        warn_if_suboptimal(conversation) -> list[str]
+        - set_temperature(conversation, value)
+        - set_top_p(conversation, value)
+        - set_top_k(conversation, value)
+        - set_num_ctx(conversation, value)
+        - set_repeat_penalty(conversation, value)
+        - validate_settings(conversation)
+        - warn_if_suboptimal(conversation) -> list[str]
 
     Static Methods (system queries):
-        get_downloaded_models()
-        get_available_models()
-        get_running_models()
+        - get_downloaded_models()
+        - get_available_models()
+        - get_running_models()
+        - get_model_paramaters(model)
+
 """
 
 import subprocess
@@ -174,7 +178,7 @@ class ModelManager:
             with urllib.request.urlopen(url) as response:  # Fetch raw bytes from the URL
                 raw_bytes = response.read()
 
-            html = raw_bytes.decode("utf-8", errors="replace")  # Decode as UTF‑8 safely
+            html = raw_bytes.decode("utf-8", errors="replace")  # Decode as UTF-8 safely
             return html
 
         except Exception as e:

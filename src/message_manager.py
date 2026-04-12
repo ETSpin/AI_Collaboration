@@ -1,43 +1,47 @@
 """
-Class: MessageManager
+File: message_manager.py
 Author: MORS
 Date: 11 APR 26
 
 Description:
-Manages the message-history component of a ConversationObject. MessageManager is responsible ONLY for constructing, normalizing,
-and manipulating message dictionaries. It does NOT interact with models, personas, or conversation lifecycle logic.
+Manages the message-history component of a ConversationObject. Responsible only
+for constructing, normalizing, and manipulating message dictionaries. Does not
+interact with models, personas, or conversation lifecycle logic.
 
 Responsibilities:
-    - Build system, user, and assistant message dictionaries
-    - Normalize message structure for consistency
-    - Append messages to a conversation's message history
-    - (Future) Trim or prune message history based on token limits
-    - (Future) Handle file-context blocks as system messages
+    - Build system, user, and assistant message dictionaries.
+    - Normalize message structure for consistency.
+    - Append messages to a conversation's message history.
+    - Replace the system message when context updates occur.
+    - (Future) Trim or prune message history based on token limits.
+    - (Future) Handle file-context blocks as system messages.
 
 Not Responsible For:
-    - Persona or context construction (ContextManager)
-    - Model settings or validation (ModelManager)
-    - Sending conversations to the model (ConversationManager)
-    - Maintaining conversation registry (ConversationManager)
-    - GUI or user interaction (AppController)
+    - Persona or context construction (ContextManager).
+    - Model settings or validation (ModelManager).
+    - Sending conversations to the model (ConversationManager).
+    - Maintaining conversation registry (ConversationManager).
+    - GUI or user interaction (AppController).
 
 Public API Contract:
+
     Static Methods (message construction):
-        build_system_message(context_components) -> dict
-        build_user_message(text) -> dict
-        build_assistant_message(text) -> dict
+        - build_system_message(context_components) -> dict
+        - build_user_message(text) -> dict
+        - build_assistant_message(text) -> dict
 
     Static Methods (message normalization):
-        normalize_message(message_dict) -> dict
+        - normalize_message(message_dict) -> dict
 
     Static Methods (message history operations):
-        append_message(conversation, message_dict)
-        replace_system_message(conversation, message_dict)
-        trim_history(conversation, max_tokens) -> None
+        - append_message(conversation, message_dict)
+        - replace_system_message(conversation, message_dict)
+        - trim_history(conversation, max_tokens) -> None
 
     Static Methods (context injection):
-        build_file_context_block(file_data) -> dict
-        inject_context_block(conversation, block_dict)
+        - build_file_context_block(file_data) -> dict
+        - inject_context_block(conversation, block_dict)
+
 """
 
 

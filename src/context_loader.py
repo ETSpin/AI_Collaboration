@@ -1,18 +1,65 @@
 """
-Class: context_loader.py
+File: context_loader.py
 Author: MORS
 Date: 3 APR 26
 
-Description: This class will alloow the AI to see the filesystem for loading directories, reading files, chunking or summarizing large content,
-             and preparing structured context blocks that can be injected into a Conversation object.
+Description:
+Allows the AI to inspect the filesystem for loading directories, reading files,
+chunking or summarizing large content, and preparing structured context blocks
+that can be injected into a Conversation object.
 
 Responsibilities:
-    - Inspect directories and return a structured tree
-    - Read file contents safely
-    - Chunk or summarize large files
-    - Provide context blocks formatted for LLM consumption
-    - Never modify conversation state directly
-    - Never call the model directly
+    - Inspect directories and return a structured tree.
+    - Read file contents safely.
+    - Chunk or summarize large files.
+    - Provide context blocks formatted for LLM consumption.
+    - Never modify conversation state directly.
+    - Never call the model directly.
+
+Not Responsible For:
+    - Managing conversations or message history.
+    - Calling or running any model.
+    - GUI or CLI rendering.
+    - Persona selection or context assembly logic.
+    - Any form of model dispatch or routing.
+
+Public API Contract:
+
+    Static Methods:
+        - list_directory(path)
+            Inputs: path (str or Path)
+            Outputs: list[dict]
+            Notes: Returns directory entries with type and size.
+
+        - read_file(path, max_bytes=None)
+            Inputs: path, optional max_bytes
+            Outputs: dict with path, content, size
+            Notes: Safely reads file contents.
+
+        - chunk_file(file_contents, max_chunk_size)
+            Inputs: file_contents (str), max_chunk_size (int)
+            Outputs: list[str]
+            Notes: Splits large text into fixed-size chunks.
+
+        - summarize_file(file_contents)
+            Inputs: file_contents
+            Outputs: summary or None
+            Notes: Placeholder for future summarization.
+
+        - build_context_block(path, contents)
+            Inputs: path, contents
+            Outputs: dict with formatted block
+            Notes: Wraps file contents in LLM-readable structure.
+
+        - file_to_context(conversation, path, max_chunk_size=8000)
+            Inputs: conversation, path, max_chunk_size
+            Outputs: bool
+            Notes: Reads, chunks, formats, and injects file blocks.
+
+        - directory_to_context(conversation, path, max_chunk_size=8000)
+            Inputs: conversation, path, max_chunk_size
+            Outputs: bool
+            Notes: Loads all eligible files in a directory into context.
 
 """
 

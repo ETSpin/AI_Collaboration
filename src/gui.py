@@ -1,73 +1,70 @@
 """
-Class: Gui
-Author: Largely AI generated, refined by MORS
+File: gui.py
+Author: Largely AI-generated, refined by MORS
 Date: 4 APR 26
 
 Description:
 Graphical User Interface for interacting with the AppController and underlying
-conversation system. Provides a complete visual front-end for chat, persona
-visualization, model settings, system prompt editing, and metadata inspection.
-
-The GUI is intentionally kept “dumb” — it does not run model logic or mutate
-conversation internals directly. Instead, it delegates all business logic to
-AppController and ConversationManager. Its responsibilities are limited to
-rendering, user input capture, and visual state updates.
+conversation system. Provides a visual front-end for chat, persona rendering,
+model settings, system prompt editing, and metadata inspection. The GUI does not
+run model logic or mutate conversation internals; it delegates all business
+operations to AppController and ConversationManager.
 
 Responsibilities:
-   - Render the chat transcript and append new user/AI messages.
-   - Capture user input and forward it to AppController for processing.
-   - Display persona artwork and update it dynamically based on temperature.
-   - Provide a temperature slider and propagate changes to the active conversation.
-   - Display model settings, system prompt text, and conversation metadata.
-   - Maintain a clean, modular layout for future expansion (tools, notes, etc.).
-   - Provide hooks for AppController to push updates (chat + context panels).
+    - Render the chat transcript and append new user/AI messages.
+    - Capture user input and forward it to AppController.
+    - Display persona artwork and update it dynamically based on temperature.
+    - Provide a temperature slider and propagate changes to model settings.
+    - Display model settings, system prompt text, and conversation metadata.
+    - Maintain a clean, modular layout for future expansion.
+    - Provide hooks for AppController to push updates (chat + context panels).
 
 Not Responsible For:
-   - Running the model or generating responses.
-   - Managing conversation lifecycle or switching conversations.
-   - Mutating message history or model options directly (beyond temperature).
-   - Managing filesystem context or ingesting external files.
-   - Implementing business logic, dispatching commands, or REPL behavior.
+    - Running the model or generating responses.
+    - Managing conversation lifecycle or switching conversations.
+    - Mutating message history or model options directly (beyond temperature).
+    - Loading files or directories into context.
+    - Implementing business logic, dispatching commands, or REPL behavior.
 
 Public API Contract:
 
-   Constructor:
-     - __init__(root, controller)
-         Inputs: Tk root window, AppController instance
-         Outputs: Gui instance
-         Notes: builds all widgets, loads persona frames, initializes layout
+    Constructor:
+        - __init__(root, controller)
+            Inputs: Tk root window, AppController instance
+            Outputs: Gui instance
+            Notes: Builds all widgets, loads persona frames, initializes layout.
 
-   Instance Methods:
+    Instance Methods:
+        - load_frames()
+            Inputs: none
+            Outputs: list[Image]
+            Notes: Loads and resizes persona animation frames from disk.
 
-     - load_frames()
-         Inputs: none
-         Outputs: list[Image]
-         Notes: loads and resizes persona animation frames from disk
+        - _create_widgets()
+            Inputs: none
+            Outputs: none
+            Notes: Constructs all GUI widgets and places them on the canvas.
 
-     - _create_widgets()
-         Inputs: none
-         Outputs: none
-         Notes: constructs all GUI widgets and places them on the canvas
+        - on_button_1_click()
+            Inputs: none
+            Outputs: none
+            Notes: Captures user input, routes commands, updates chat display.
 
-     - on_button_1_click()
-         Inputs: none
-         Outputs: none
-         Notes: captures user input, sends it to controller, updates chat display
+        - on_temp_change(value)
+            Inputs: slider value
+            Outputs: none
+            Notes: Updates persona image and writes temperature into model settings.
 
-     - on_temp_change(value)
-         Inputs: slider value (string/float)
-         Outputs: none
-         Notes: updates persona image and writes temperature into conversation options
+        - update_persona_image(temp)
+            Inputs: temperature (float)
+            Outputs: none
+            Notes: Renders a drift-proof persona frame with glow effects.
 
-     - update_persona_image(temp)
-         Inputs: temperature (float)
-         Outputs: none
-         Notes: renders a drift-proof persona frame with glow effects
+        - update_context_panel()
+            Inputs: none
+            Outputs: none
+            Notes: Refreshes metadata panel with conversation ID, persona, model, and settings.
 
-     - update_context_panel()
-         Inputs: none
-         Outputs: none
-         Notes: refreshes metadata panel with conversation ID, persona, model, options
 """
 
 

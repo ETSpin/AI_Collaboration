@@ -4,12 +4,36 @@ Author: MORS
 Date: 20 Dec 25
 
 Description:
-Centralizes access to runtime settings, allowing the system to load configuration
-values from files, environment variables, or default settings. 
+Provides a minimal configuration manager wrapper.
+Currently responsible only for storing a configuration file path and returning
+a placeholder configuration structure. Future expansion may include loading
+environment variables, defaults, or external configuration sources.
 
-Usage:
-Imported by main.py or any subsystem requiring configuration values.
+Responsibilities:
+  - Store the path to a configuration file.
+  - Provide a load() method returning a configuration dictionary.
+  - Serve as a placeholder for future configuration expansion.
 
+Not Responsible For:
+  - Parsing or validating configuration files.
+  - Loading environment variables or defaults.
+  - Managing runtime settings or global application state.
+  - Any interaction with models, conversations, or GUI.
+
+Public API Contract:
+
+  Instance Methods:
+    - __init__(path: str)
+        Inputs: path to a configuration file
+        Outputs: ConfigManager instance
+
+    - load()
+        Inputs: none
+        Outputs: Dict[str, Any]
+        Notes: Returns a placeholder configuration dictionary.
+
+Static Methods:
+  - None
 """
 
 from typing import Any, Dict

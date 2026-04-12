@@ -1,21 +1,47 @@
 """
-Class: RuntimeMonitor
+File: runtime_monitor.py
 Author: MORS
 Date: 4 APR 26
 
 Description:
 Provides system-level telemetry for the running environment, including GPU, VRAM,
-CPU, and memory usage. This class is responsible for querying the underlying
-operating system and hardware to expose real-time resource metrics that can be
-used by the application, REPL, or future GUI components.
+CPU, and memory usage. Responsible for querying the underlying operating system
+and hardware to expose real-time resource metrics for use by the application,
+REPL, or GUI components. Stateless and model-agnostic.
 
 Responsibilities:
-- Report current GPU utilization (if available)
-- Report current GPU VRAM usage (if available)
-- Report current CPU utilization
-- Report current system memory usage
-- Provide a clean, stateless interface for system telemetry
-- Avoid any model-specific or context-specific logic
+    - Report current CPU utilization.
+    - Report current system memory usage.
+    - Report GPU utilization (if available).
+    - Report GPU VRAM usage (if available).
+    - Estimate hardware-based token limits.
+    - Provide a clean, stateless interface for system telemetry.
+    - Avoid any model-specific or context-specific logic.
+
+Not Responsible For:
+    - Running or interacting with models.
+    - Managing conversation state or settings.
+    - Loading personas or context.
+    - GUI rendering or user interaction.
+    - Persisting telemetry or maintaining historical data.
+
+Public API Contract:
+
+    Static Methods (CPU & Memory):
+        - get_cpu_usage() -> float
+        - get_memory_usage() -> dict
+
+    Static Methods (GPU & VRAM):
+        - get_gpu_usage() -> float | None
+        - get_vram_total() -> float | None
+        - get_vram_available() -> float | None
+        - get_vram_usage() -> dict | None
+
+    Static Methods (hardware heuristics):
+        - estimate_tokens_hardware_max(tokens_per_gb=200_000) -> int
+
+    Internal Helpers:
+        - _run_nvidia_smi() -> tuple | None
 """
 
 import subprocess
