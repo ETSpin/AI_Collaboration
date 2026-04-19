@@ -15,16 +15,16 @@ Module Docstring:
      - Maintain a registry of all Conversation objects created during runtime.
      - Track which conversation is currently active.
      - Create new conversations via create_conversation().
-     - Generate unique conversation IDs via Utils.generate_conv_id().
+     - Assign unique conversation IDs via Utils.generate_conv_id().
      - Switch the active conversation via switch_conversation().
-     - Run the initial model turn for a new conversation.
+     - Run the initial model turn for a new conversation (persona introduction).
      - Provide a unified lifecycle entry point via start_new_conversation().
-     - Manage the REPL loop for user input and command dispatch.
+     - Manage the CLI REPL loop for user input and command dispatch.
      - Route slash commands to dispatcher.system_dispatch().
      - Route dash commands to dispatcher.conversation_dispatch().
      - Append user and AI messages via ConversationManager.
-     - Provide placeholder hooks for GUI updates (chat + thinking displays).
-     - Provide a placeholder for context integration.
+     - Integrate with GUI mode via update_chat_display() and update_thinking_display().
+     - Support GUI-driven temperature/model option updates through the Conversation object.
 
    Not Responsible For:
      - Implementing model logic (delegated to ModelRunner).
@@ -40,15 +40,11 @@ Module Docstring:
        - __init__()
            Inputs: none
            Outputs: AppController instance
-           Notes: initializes conversation registry and active ID
+           Notes: initializes conversation registry, active ID, and GUI reference
 
        - conversations (property)
            Inputs: none
            Outputs: dict[str, Conversation]
-
-       - active_conversation_id (property getter/setter)
-           Inputs: none / str
-           Outputs: str or None
 
        - active_conversation (property)
            Inputs: none
@@ -83,7 +79,7 @@ Module Docstring:
        - run_initial_conversation_turn(conv_id)
            Inputs: conv_id
            Outputs: model response or False
-           Notes: runs persona introduction turn
+           Notes: rruns persona introduction turn and pushes output to GUI/CLI
 
        - start_new_conversation(persona_name)
            Inputs: persona_name
@@ -94,34 +90,31 @@ Module Docstring:
            Inputs: none
            Outputs: list[str]
 
-       - run_user_turn()
-           Inputs: none
-           Outputs: none
-           Notes: placeholder for future user-turn abstraction
+       - run_conversation_turn(user_input)
+           Inputs: user_input
+           Outputs: response.message.content [str]
+           Notes: runs one turn of the conversation (user input - computer response)
 
-       - update_chat_display(output_chunk, window_id=None)
-           Inputs: output_chunk, window_id
+       - update_chat_display(text, window_id=None)
+           Inputs: text, window_id
            Outputs: none
-           Notes: GUI placeholder
+           Notes: Groutes output to GUI if present, otherwise prints to CLI
 
        - update_thinking_display(output_chunk, window_id=None)
            Inputs: output_chunk, window_id
            Outputs: none
            Notes: GUI placeholder
 
-       - integrate_context()
-           Inputs: none
-           Outputs: none
-           Notes: placeholder for context injection logic
-
      Static Methods:
        - None
 
 Imports:
+  json
+  os
   dispatcher
   from context_manager import ContextManager
   from conversation_manager import ConversationManager
-  from model_runner import ModelRunner
+  from runtime_monitor import RuntimeMonitor
   from utils import Utils
 
 Classes:
@@ -133,21 +126,19 @@ Classes:
       (no method docstring)
     def active_conversation_id(self)
       (no method docstring)
-    def active_conversation_id(self, value)
-      (no method docstring)
     def active_conversation(self)
       (no method docstring)
     def app_start(self, persona_name)
       (no method docstring)
     def app_repl(self)
       (no method docstring)
-    def create_conversation(self, persona_name)
+    def create_conversation(self, persona_name, user_overrides)
       (no method docstring)
     def app_run(self)
       (no method docstring)
     def switch_conversation(self, conv_id)
       (no method docstring)
-    def run_user_turn()
+    def run_conversation_turn(self, user_input)
       (no method docstring)
     def list_conversations(self)
       (no method docstring)
@@ -155,11 +146,13 @@ Classes:
       (no method docstring)
     def start_new_conversation(self, persona_name)
       (no method docstring)
-    def update_chat_display(self, output_chunk, window_id)
+    def get_active_conversation_summary(self)
+      (no method docstring)
+    def update_chat_display(self, text, window_id)
       (no method docstring)
     def update_thinking_display(self, output_chunk, window_id)
       (no method docstring)
-    def integrate_context(self)
+    def _load_personas(self)
       (no method docstring)
 
 
@@ -171,12 +164,31 @@ Module Docstring:
   Date: 20 Dec 25
 
   Description:
-  Provides a command-line interface.
-  This module is responsible for parsing user-supplied arguments, validating them, and routing execution to
-  the appropriate subsystems such as ingestion, analysis, or formatting.
+  Provides a command-line interface for the application.
+  Responsible solely for parsing and validating user-supplied arguments.
+  Does not perform routing, ingestion, analysis, or formatting.
 
-  Usage:
-  Imported by main.py or executed indirectly
+  Responsibilities:
+    - Define command-line arguments using argparse.
+    - Validate and return parsed arguments to the caller.
+    - Support optional model selection, config file path, and verbose mode.
+
+  Not Responsible For:
+    - Executing commands or routing logic.
+    - Managing conversations or models.
+    - Loading files, ingesting data, or performing analysis.
+    - Any GUI or REPL behavior.
+
+  Public API Contract:
+
+    Functions:
+      - parse_args()
+          Inputs: none
+          Outputs: argparse.Namespace
+          Notes: Returns parsed CLI arguments for use by main.py or other callers.
+
+  Static Methods:
+    - None
 
 Imports:
   argparse
@@ -194,13 +206,36 @@ Module Docstring:
   Date: 20 Dec 25
 
   Description:
-  Centralizes access to runtime settings, allowing the system to load configuration
-  values from files, environment variables, or default settings. 
-  By isolating configuration logic, the rest of the system remains clean, predictable, and
-  easy to test.
+  Provides a minimal configuration manager wrapper.
+  Currently responsible only for storing a configuration file path and returning
+  a placeholder configuration structure. Future expansion may include loading
+  environment variables, defaults, or external configuration sources.
 
-  Usage:
-  Imported by main.py or any subsystem requiring configuration values.
+  Responsibilities:
+    - Store the path to a configuration file.
+    - Provide a load() method returning a configuration dictionary.
+    - Serve as a placeholder for future configuration expansion.
+
+  Not Responsible For:
+    - Parsing or validating configuration files.
+    - Loading environment variables or defaults.
+    - Managing runtime settings or global application state.
+    - Any interaction with models, conversations, or GUI.
+
+  Public API Contract:
+
+    Instance Methods:
+      - __init__(path: str)
+          Inputs: path to a configuration file
+          Outputs: ConfigManager instance
+
+      - load()
+          Inputs: none
+          Outputs: Dict[str, Any]
+          Notes: Returns a placeholder configuration dictionary.
+
+  Static Methods:
+    - None
 
 Imports:
   from typing import Any, Dict
@@ -217,24 +252,71 @@ Classes:
 FILE: context_loader.py
 ------------------------------------------------------------
 Module Docstring:
-  Class: context_loader.py
+  File: context_loader.py
   Author: MORS
   Date: 3 APR 26
 
-  Description: This class will alloow the AI to see the filesystem for loading directories, reading files, chunking or summarizing large content, 
-               and preparing structured context blocks that can be injected into a Conversation object.
+  Description:
+  Allows the AI to inspect the filesystem for loading directories, reading files,
+  chunking or summarizing large content, and preparing structured context blocks
+  that can be injected into a Conversation object.
 
   Responsibilities:
-      - Inspect directories and return a structured tree
-      - Read file contents safely
-      - Chunk or summarize large files
-      - Provide context blocks formatted for LLM consumption
-      - Never modify conversation state directly
-      - Never call the model directly
+      - Inspect directories and return a structured tree.
+      - Read file contents safely.
+      - Chunk or summarize large files.
+      - Provide context blocks formatted for LLM consumption.
+      - Never modify conversation state directly.
+      - Never call the model directly.
+
+  Not Responsible For:
+      - Managing conversations or message history.
+      - Calling or running any model.
+      - GUI or CLI rendering.
+      - Persona selection or context assembly logic.
+      - Any form of model dispatch or routing.
+
+  Public API Contract:
+
+      Static Methods:
+          - list_directory(path)
+              Inputs: path (str or Path)
+              Outputs: list[dict]
+              Notes: Returns directory entries with type and size.
+
+          - read_file(path, max_bytes=None)
+              Inputs: path, optional max_bytes
+              Outputs: dict with path, content, size
+              Notes: Safely reads file contents.
+
+          - chunk_file(file_contents, max_chunk_size)
+              Inputs: file_contents (str), max_chunk_size (int)
+              Outputs: list[str]
+              Notes: Splits large text into fixed-size chunks.
+
+          - summarize_file(file_contents)
+              Inputs: file_contents
+              Outputs: summary or None
+              Notes: Placeholder for future summarization.
+
+          - build_context_block(path, contents)
+              Inputs: path, contents
+              Outputs: dict with formatted block
+              Notes: Wraps file contents in LLM-readable structure.
+
+          - file_to_context(conversation, path, max_chunk_size=8000)
+              Inputs: conversation, path, max_chunk_size
+              Outputs: bool
+              Notes: Reads, chunks, formats, and injects file blocks.
+
+          - directory_to_context(conversation, path, max_chunk_size=8000)
+              Inputs: conversation, path, max_chunk_size
+              Outputs: bool
+              Notes: Loads all eligible files in a directory into context.
 
 Imports:
   from pathlib import Path
-  from context_manager import ContextManager
+  from message_manager import MessageManager
 
 Classes:
   class ContextLoader
@@ -258,80 +340,174 @@ Classes:
 FILE: context_manager.py
 ------------------------------------------------------------
 Module Docstring:
-  Class: ContextManager
+  File: context_manager.py
   Author: MORS
-  Date: 22 MAR 26
+  Date: 22 MAR 26 (Refactored 11 APR 26)
 
   Description:
-  Handles any user provided files and an ability to import data from a library
-  - Will likley also handle other tool(s) or methods for the model to be able to get additional information (web, other local tools, etc.)
+  Pure static utility class for working with persona definitions.
+  ContextManager does NOT load JSON, store state, or create conversations.
+  All persona data is provided externally (typically by AppController).
 
-  Usage:
-  TBD...
+  Responsibilities:
+      - Validate persona definitions.
+      - Retrieve persona metadata.
+      - List available personas.
+      - Build structured context components for ConversationManager.
+      - Provide default model settings for a persona.
+
+  Not Responsible For:
+      - Loading personalities.json.
+      - Storing personas.
+      - Creating Conversation objects.
+      - Injecting context into conversations.
+      - Handling file uploads or external tools.
+      - Running or dispatching models.
+
+  Public API Contract:
+
+      Static Methods (persona validation):
+          - validate_persona(persona_key, persona_dict) -> bool
+
+      Static Methods (persona retrieval):
+          - get_persona(personas_dict, name) -> dict | None
+          - list_personas(personas_dict) -> list
+
+      Static Methods (persona components):
+          - get_default_settings(persona_dict) -> dict
+          - get_model_name(persona_dict) -> str
+          - get_prompt_prefix(persona_dict) -> str
+          - get_personality_text(persona_dict) -> str
+          - get_rules(persona_dict) -> str
+          - build_context_components(persona_dict) -> dict
+
+      Utility Methods:
+          - count_tokens(text) -> int
 
 Imports:
-  from conversation import Conversation
+  copy
+  tiktoken
 
 Classes:
   class ContextManager
     (no class docstring)
-    def start_conversation(persona_name)
+    def validate_persona(key, data)
       (no method docstring)
-    def inject_context(conversation, block)
+    def get_persona(personas, name)
       (no method docstring)
-    def accept_file_upload(self, input_file)
+    def list_personas(personas)
       (no method docstring)
-    def detect_file_type(self, input_file)
+    def get_default_settings(persona)
       (no method docstring)
-    def extract_data(self, input_file)
+    def get_model_name(persona)
       (no method docstring)
-    def store_context_data(self, data)
+    def get_prompt_prefix(persona)
       (no method docstring)
-    def get_context_data(self)
+    def get_personality_text(persona)
       (no method docstring)
-    def remove_context_data(self, data)
+    def get_rules(persona)
       (no method docstring)
-    def load_library_files(self, directory)
+    def build_context_components(persona)
       (no method docstring)
-    def get_library_list(self)
+    def count_tokens(text)
       (no method docstring)
 
 
-FILE: conversation.py
+FILE: conversationobject.py
 ------------------------------------------------------------
 Module Docstring:
-  Class: conversation
+  File: conversationobject.py
   Author: MORS
   Date: 28 MAR 26
 
   Description:
-  This is the conversation class -- it will enable the creation of a conversation object that contains
-  messages, model name, and other data for each conversation
+  Represents a single conversational session between the user and an AI persona.
+  Stores all stateful information required to run, resume, serialize, or inspect a
+  conversation. Acts as a structured container for model configuration, message
+  history, metadata, and lifecycle timestamps. A ConversationObject holds the
+  three components required to execute a model turn:
 
-  Usage:
-  As a container class, I am exposing the
+      1. model_settings   (from ModelManager)
+      2. context_components (from ContextManager)
+      3. message_history  (from MessageManager)
+
+  It is immutable in structure but mutable in content (messages grow, metadata
+  updates, timestamps change). It does NOT run the model and does NOT modify
+  its own messages.
+
+  Responsibilities:
+      - Store the model name used for this conversation.
+      - Store the externally assigned conversation_id.
+      - Hold context_components (prompt_prefix, personality, rules).
+      - Hold model_settings (temperature, top_p, num_ctx, etc.).
+      - Store the message history list (role/content dicts).
+      - Track creation and update timestamps.
+      - Store metadata, token counts, and optional conversation title.
+      - Store the assistant's prompt_name.
+      - Provide read-only accessors for conversation state.
+      - Provide readable __str__ and __len__ helpers for debugging.
+
+  Not Responsible For:
+      - Running the model (ConversationManager does that).
+      - Adding or modifying messages (MessageManager does that).
+      - Generating conversation IDs (AppController/Utils).
+      - Managing GUI or CLI output.
+      - Loading personas or building context (ContextManager).
+      - Managing or validating model settings (ModelManager).
+
+  Public API Contract:
+
+      Constructor:
+          __init__(model_name, conversation_id=None, context_block=None,
+                   persona_name=None, persona_dict=None, model_settings=None,
+                   messages=None, context_components=None, prompt_name="AI agent:")
+
+      Properties:
+          model_name (get/set)
+          model_settings (get/set)
+          context_block (get/set)
+          messages (get)
+          conversation_id (get/set)
+          prompt_name (get/set)
+          created_at (get/set)
+          updated_at (get/set)
+          metadata (get/set)
+          token_count (get/set)
+          title (get/set)
+
+      Special Methods:
+          __len__() → number of message turns
+          __str__() → human-readable summary
 
 Imports:
   from datetime import datetime, timezone
 
 Classes:
-  class Conversation
+  class ConversationObject
     (no class docstring)
-    def __init__(self, model_name, messages, model_options)
+    def __init__(self, model_name, conversation_id, context_block, persona_name, persona_dict, model_settings, messages, context_components, prompt_name)
       (no method docstring)
     def model_name(self)
       (no method docstring)
     def model_name(self, value)
       (no method docstring)
+    def model_settings(self)
+      (no method docstring)
+    def model_settings(self, value)
+      (no method docstring)
+    def context_block(self)
+      (no method docstring)
+    def context_block(self, value)
+      (no method docstring)
     def messages(self)
       (no method docstring)
-    def options(self)
+    def conversation_id(self)
       (no method docstring)
-    def persona(self, value)
+    def conversation_id(self, value)
       (no method docstring)
-    def persona(self)
+    def prompt_name(self)
       (no method docstring)
-    def persona(self, value)
+    def prompt_name(self, value)
       (no method docstring)
     def created_at(self)
       (no method docstring)
@@ -362,23 +538,73 @@ Classes:
 FILE: conversation_manager.py
 ------------------------------------------------------------
 Module Docstring:
-  Class: ConversationManager
+  File: conversation_manager.py
   Author: MORS
-  Date: 22 MAR 26
+  Date: 11 APR 26
 
   Description:
-  This class is a utility that will act on conversation objects
+  Coordinates persona components, model settings, and message flow for a single
+  conversation. ConversationManager does NOT load personas, store global state,
+  or interact with external systems beyond calling the model. It assembles the
+  model, context, and message components and manages the conversation lifecycle.
 
-  Usage:
-  TBD...
+  Responsibilities:
+      - Create new conversations using persona/context components.
+      - Insert system, user, and assistant messages via MessageManager.
+      - Manage conversation history and timestamps.
+      - Switch models or personas when requested.
+      - Apply and validate model settings via ModelManager.
+      - Call the model and return the AI response.
+      - Maintain model token window metadata.
+
+  Not Responsible For:
+      - Loading personalities.json.
+      - Storing personas or global state.
+      - Building persona/context components (ContextManager does that).
+      - Formatting or styling messages (MessageManager does that).
+      - GUI interaction (AppController does that).
+      - Dispatching commands or routing user input.
+
+  Public API Contract:
+
+      Static Methods (conversation lifecycle):
+          - start_conversation(persona_name, persona_dict, context_components,
+                              default_settings, model_name)
+          - reset_conversation(conversation)
+
+      Static Methods (message flow):
+          - add_user_message(conversation, input_message)
+          - add_ai_response(conversation, response)
+          - add_ai_metadata(conversation, response)
+
+      Static Methods (model interaction):
+          - run_model(conversation)
+          - assemble_messages(conversation)
+
+      Static Methods (conversation queries):
+          - get_model(conversation)
+          - set_model(conversation, new_model)
+          - history(conversation)
+          - get_conversation_info(conversation)
+
+      Static Methods (model metadata):
+          - set_model_max_tokens(conversation)
 
 Imports:
-  subprocess
-  urllib.request
+  json
+  from datetime import datetime, timezone
+  from conversationobject import ConversationObject
+  from message_manager import MessageManager
+  from model_manager import ModelManager
+  from model_runner import ModelRunner
 
 Classes:
   class ConversationManager
     (no class docstring)
+    def start_conversation(persona_name, persona_dict, context_components, default_settings, model_name)
+      (no method docstring)
+    def assemble_messages(conversation)
+      (no method docstring)
     def add_user_message(conversation, input_message)
       (no method docstring)
     def add_ai_response(conversation, response)
@@ -387,23 +613,17 @@ Classes:
       (no method docstring)
     def reset_conversation(conversation)
       (no method docstring)
+    def run_model(conversation)
+      (no method docstring)
     def get_model(conversation)
       (no method docstring)
     def set_model(conversation, new_model)
       (no method docstring)
     def history(conversation)
       (no method docstring)
-    def get_temperature(conversation)
-      (no method docstring)
-    def set_temperature(conversation, value)
-      (no method docstring)
     def get_conversation_info(conversation)
       (no method docstring)
-    def get_downloaded_models()
-      (no method docstring)
-    def get_available_models()
-      (no method docstring)
-    def get_running_models()
+    def set_model_max_tokens(conversation)
       (no method docstring)
 
 
@@ -412,19 +632,65 @@ FILE: dispatcher.py
 Module Docstring:
   File: dispatcher.py
   Author: MORS
-  Date: 20 Dec 25
+  Date: 20 DEC 25
 
   Description:
-      Command dispatcher This module receives raw command strings from the main event loop, parses them into their constituent
-      components (command, arguments, and flags), and routes them to the appropriate handler within the system.
-
-      The dispatcher is intentionally lightweight and modular. Each command handler is responsible for validating its own arguments and flags,
-      enforcing defaults, and returning a human-readable response string suitable for display in the GUI output window.
+  Lightweight command-routing layer for the application. The dispatcher receives
+  raw command strings from the AppController (typically via the CLI REPL), parses
+  them into structured arguments, and forwards them to the appropriate subsystem.
+  Supports two command namespaces:
+      • System commands ("/")
+      • Conversation commands ("-")
+  Performs no business logic; only parses, validates, and routes commands.
 
   Responsibilities:
-      TBD...
+      - Tokenize raw command strings using shlex.
+      - Identify the command namespace (system vs. conversation).
+      - Build argparse parsers dynamically based on keyword metadata.
+      - Validate arguments and flags for each command.
+      - Route parsed arguments to the appropriate handler function.
+      - Provide help listings for both system and conversation commands.
+      - Surface errors cleanly without terminating the application.
 
-  --- Needs to be refactored to clean up repeat code between system and conversation commands
+  Not Responsible For:
+      - Mutating conversation state (ConversationManager handles this).
+      - Running models or modifying model settings (ModelManager / AppController).
+      - Loading files or directories into context (ContextLoader).
+      - Monitoring system resources (RuntimeMonitor).
+      - Installing or uninstalling models (Utils / ModelManager).
+      - Rendering GUI output or managing GUI state.
+
+  Public API Contract:
+
+      System Command Entry Point:
+          - system_dispatch(cmd, conversation)
+              Inputs: raw command string (no leading "/"), Conversation object
+              Outputs: none
+              Notes: Parses and routes system-level commands.
+
+      Conversation Command Entry Point:
+          - conversation_dispatch(cmd, conversation)
+              Inputs: raw command string (no leading "-"), Conversation object
+              Outputs: none
+              Notes: Parses and routes conversation-level commands.
+
+      System Handlers:
+          - system_display(attribute, conversation)
+          - system_update(attribute, value, conversation)
+          - system_show_model_info(attribute)
+          - system_install_model(attribute)
+          - system_uninstall_model(attribute)
+          - system_show_stats(attribute)
+          - system_help_command()
+
+      Conversation Handlers:
+          - load_file(conversation, path)
+          - load_directory(conversation, path)
+          - conversation_help()
+
+      Parser Builders:
+          - system_parserbuilder(cmdword)
+          - conversation_parserbuilder(cmdword)
 
 Imports:
   argparse
@@ -434,6 +700,7 @@ Imports:
   time
   from context_loader import ContextLoader
   from conversation_manager import ConversationManager
+  from model_manager import ModelManager
   from runtime_monitor import RuntimeMonitor
   from utils import Utils
 
@@ -504,38 +771,95 @@ Classes:
 FILE: gui.py
 ------------------------------------------------------------
 Module Docstring:
-  Class: Gui
-  Author: Largely AI generated
+  File: gui.py
+  Author: Largely AI-generated, refined by MORS
   Date: 4 APR 26
 
   Description:
-  Handles the display of model thought process (also called partial or streaming output) in real time
-  Built to  support a separate UI element for showing the model's "thinking" process - separate from the conversation
+  Graphical User Interface for interacting with the AppController and underlying
+  conversation system. Provides a visual front-end for chat, persona rendering,
+  model settings, system prompt editing, and metadata inspection. The GUI does not
+  run model logic or mutate conversation internals; it delegates all business
+  operations to AppController and ConversationManager.
 
   Responsibilities:
-  TBD...
+      - Render the chat transcript and append new user/AI messages.
+      - Capture user input and forward it to AppController.
+      - Display persona artwork and update it dynamically based on temperature.
+      - Provide a temperature slider and propagate changes to model settings.
+      - Display model settings, system prompt text, and conversation metadata.
+      - Maintain a clean, modular layout for future expansion.
+      - Provide hooks for AppController to push updates (chat + context panels).
+
+  Not Responsible For:
+      - Running the model or generating responses.
+      - Managing conversation lifecycle or switching conversations.
+      - Mutating message history or model options directly (beyond temperature).
+      - Loading files or directories into context.
+      - Implementing business logic, dispatching commands, or REPL behavior.
+
+  Public API Contract:
+
+      Constructor:
+          - __init__(root, controller)
+              Inputs: Tk root window, AppController instance
+              Outputs: Gui instance
+              Notes: Builds all widgets, loads persona frames, initializes layout.
+
+      Instance Methods:
+          - load_frames()
+              Inputs: none
+              Outputs: list[Image]
+              Notes: Loads and resizes persona animation frames from disk.
+
+          - _create_widgets()
+              Inputs: none
+              Outputs: none
+              Notes: Constructs all GUI widgets and places them on the canvas.
+
+          - on_button_1_click()
+              Inputs: none
+              Outputs: none
+              Notes: Captures user input, routes commands, updates chat display.
+
+          - on_temp_change(value)
+              Inputs: slider value
+              Outputs: none
+              Notes: Updates persona image and writes temperature into model settings.
+
+          - update_persona_image(temp)
+              Inputs: temperature (float)
+              Outputs: none
+              Notes: Renders a drift-proof persona frame with glow effects.
+
+          - update_context_panel()
+              Inputs: none
+              Outputs: none
+              Notes: Refreshes metadata panel with conversation ID, persona, model, and settings.
 
 Imports:
   os
   tkinter
   from tkinter import ttk
   from PIL import Image, ImageFilter, ImageTk
+  from dispatcher import conversation_dispatch, system_dispatch
 
 Classes:
   class Gui
     (no class docstring)
-    def __init__(self, root)
+    def __init__(self, root, controller)
       (no method docstring)
     def load_frames(self)
       (no method docstring)
     def _create_widgets(self)
       (no method docstring)
-    def on_temp_change(self, value)
-      (no method docstring)
     def update_persona_image(self, temp)
-      Clean, stable, drift-proof persona renderer.
-      Uses preloaded individual frames.
+      (no method docstring)
     def on_button_1_click(self)
+      (no method docstring)
+    def update_context_panel(self)
+      (no method docstring)
+    def on_temp_change(self, value)
       (no method docstring)
 
 
@@ -554,26 +878,215 @@ Module Docstring:
   Usage:
 
 Imports:
+  tkinter
   from app_controller import AppController
+  from gui import Gui
 
 Top-level Functions:
-  def main()
+  def main_gui()
     (no function docstring)
+
+
+FILE: message_manager.py
+------------------------------------------------------------
+Module Docstring:
+  File: message_manager.py
+  Author: MORS
+  Date: 11 APR 26
+
+  Description:
+  Manages the message-history component of a ConversationObject. Responsible only
+  for constructing, normalizing, and manipulating message dictionaries. Does not
+  interact with models, personas, or conversation lifecycle logic.
+
+  Responsibilities:
+      - Build system, user, and assistant message dictionaries.
+      - Normalize message structure for consistency.
+      - Append messages to a conversation's message history.
+      - Replace the system message when context updates occur.
+      - (Future) Trim or prune message history based on token limits.
+      - (Future) Handle file-context blocks as system messages.
+
+  Not Responsible For:
+      - Persona or context construction (ContextManager).
+      - Model settings or validation (ModelManager).
+      - Sending conversations to the model (ConversationManager).
+      - Maintaining conversation registry (ConversationManager).
+      - GUI or user interaction (AppController).
+
+  Public API Contract:
+
+      Static Methods (message construction):
+          - build_system_message(context_components) -> dict
+          - build_user_message(text) -> dict
+          - build_assistant_message(text) -> dict
+
+      Static Methods (message normalization):
+          - normalize_message(message_dict) -> dict
+
+      Static Methods (message history operations):
+          - append_message(conversation, message_dict)
+          - replace_system_message(conversation, message_dict)
+          - trim_history(conversation, max_tokens) -> None
+
+      Static Methods (context injection):
+          - build_file_context_block(file_data) -> dict
+          - inject_context_block(conversation, block_dict)
+
+Classes:
+  class MessageManager
+    (no class docstring)
+    def build_system_message(context_components)
+      (no method docstring)
+    def build_user_message(text)
+      (no method docstring)
+    def build_assistant_message(text)
+      (no method docstring)
+    def normalize_message(message_dict)
+      (no method docstring)
+    def append_message(conversation, message_dict)
+      (no method docstring)
+    def replace_system_message(conversation, message_dict)
+      (no method docstring)
+    def trim_history(conversation, max_tokens)
+      (no method docstring)
+    def build_file_context_block(file_data)
+      (no method docstring)
+    def inject_context_block(conversation, block_dict)
+      (no method docstring)
+
+
+FILE: model_manager.py
+------------------------------------------------------------
+Module Docstring:
+  File: model_manager.py
+  Author: MORS
+  Date: 22 MAR 26
+
+  Description:
+  Static utility class responsible for manipulating model-related settings inside a
+  ConversationObject and querying system-level model information (downloaded,
+  running, and available models). ModelManager does not store defaults, load
+  personas, or maintain internal state. All defaults are provided externally by
+  ConversationManager.
+
+  Responsibilities:
+      - Update model_settings inside a ConversationObject.
+      - Validate model_settings values.
+      - Provide granular setters for common model parameters.
+      - Provide warnings for suboptimal but valid configurations.
+      - Query system-level model information (downloaded, running, available).
+      - Retrieve model metadata from the Ollama CLI.
+
+  Not Responsible For:
+      - Loading personalities.json (ContextManager).
+      - Selecting or switching models (ConversationManager).
+      - Running model inference.
+      - Managing context or messages.
+      - Holding internal state or defaults.
+
+  Public API Contract:
+
+      Static Methods (settings):
+          - set_temperature(conversation, value)
+          - set_top_p(conversation, value)
+          - set_top_k(conversation, value)
+          - set_num_ctx(conversation, value)
+          - set_repeat_penalty(conversation, value)
+          - validate_settings(conversation)
+          - warn_if_suboptimal(conversation) -> list[str]
+
+      Static Methods (system queries):
+          - get_downloaded_models()
+          - get_available_models()
+          - get_running_models()
+          - get_model_paramaters(model)
+
+Imports:
+  subprocess
+  urllib.request
+
+Classes:
+  class ModelManager
+    (no class docstring)
+    def set_temperature(conversation, value)
+      (no method docstring)
+    def set_top_p(conversation, value)
+      (no method docstring)
+    def set_top_k(conversation, value)
+      (no method docstring)
+    def set_num_ctx(conversation, value)
+      (no method docstring)
+    def set_repeat_penalty(conversation, value)
+      (no method docstring)
+    def validate_settings(conversation)
+      (no method docstring)
+    def warn_if_suboptimal(conversation)
+      (no method docstring)
+    def get_downloaded_models()
+      (no method docstring)
+    def get_available_models()
+      (no method docstring)
+    def get_running_models()
+      (no method docstring)
+    def get_model_paramaters(model)
+      (no method docstring)
 
 
 FILE: model_runner.py
 ------------------------------------------------------------
 Module Docstring:
-  Class: ModelRunner
+  File: model_runner.py
   Author: MORS
   Date: 22 MAR 26
 
   Description:
-  This  class that will hold all of the model interactions between Ollama and Python.
-  - will handle single turn or streaming output (conversations in Ollama are basically single_turn, with history reloaded)
+  Handles all model interactions between Python and the Ollama runtime. Provides
+  single-turn, multi-turn, and (future) streaming execution paths. Does not manage
+  conversation state, defaults, or persona logic. Operates strictly as a thin
+  execution layer over the Ollama API.
 
   Responsibilities:
-  TBD...
+      - Execute single-turn model calls.
+      - Execute multi-turn conversation calls using message history.
+      - Provide hooks for future streaming output.
+      - Provide hooks for resetting or reinitializing model state.
+
+  Not Responsible For:
+      - Managing conversation history (MessageManager).
+      - Managing model settings or validation (ModelManager).
+      - Selecting or switching models (ConversationManager).
+      - Loading personas or context (ContextManager).
+      - GUI or REPL behavior (AppController / Gui).
+
+  Public API Contract:
+
+      Instance Methods:
+          - set_model(model_name)
+              Inputs: model name (str)
+              Outputs: None
+              Notes: Placeholder for future model selection logic.
+
+          - stream_partial_output(callback)
+              Inputs: callback function
+              Outputs: None
+              Notes: Placeholder for future streaming token output.
+
+          - reset_model_state()
+              Inputs: none
+              Outputs: none
+              Notes: Placeholder for future model reset logic.
+
+      Static Methods:
+          - run_single_turn(model, input_text)
+              Inputs: model name, user text
+              Outputs: Ollama response object
+              Notes: Executes a single user→model turn.
+
+          - run_conversation(model, messages, options)
+              Inputs: model name, message list, model options
+              Outputs: Ollama response object
+              Notes: Executes a multi-turn conversation using full message history.
 
 Imports:
   from ollama import chat
@@ -596,23 +1109,49 @@ Classes:
 FILE: runtime_monitor.py
 ------------------------------------------------------------
 Module Docstring:
-  Class: RuntimeMonitor
+  File: runtime_monitor.py
   Author: MORS
   Date: 4 APR 26
 
   Description:
   Provides system-level telemetry for the running environment, including GPU, VRAM,
-  CPU, and memory usage. This class is responsible for querying the underlying
-  operating system and hardware to expose real-time resource metrics that can be
-  used by the application, REPL, or future GUI components.
+  CPU, and memory usage. Responsible for querying the underlying operating system
+  and hardware to expose real-time resource metrics for use by the application,
+  REPL, or GUI components. Stateless and model-agnostic.
 
   Responsibilities:
-  - Report current GPU utilization (if available)
-  - Report current GPU VRAM usage (if available)
-  - Report current CPU utilization
-  - Report current system memory usage
-  - Provide a clean, stateless interface for system telemetry
-  - Avoid any model-specific or context-specific logic
+      - Report current CPU utilization.
+      - Report current system memory usage.
+      - Report GPU utilization (if available).
+      - Report GPU VRAM usage (if available).
+      - Estimate hardware-based token limits.
+      - Provide a clean, stateless interface for system telemetry.
+      - Avoid any model-specific or context-specific logic.
+
+  Not Responsible For:
+      - Running or interacting with models.
+      - Managing conversation state or settings.
+      - Loading personas or context.
+      - GUI rendering or user interaction.
+      - Persisting telemetry or maintaining historical data.
+
+  Public API Contract:
+
+      Static Methods (CPU & Memory):
+          - get_cpu_usage() -> float
+          - get_memory_usage() -> dict
+
+      Static Methods (GPU & VRAM):
+          - get_gpu_usage() -> float | None
+          - get_vram_total() -> float | None
+          - get_vram_available() -> float | None
+          - get_vram_usage() -> dict | None
+
+      Static Methods (hardware heuristics):
+          - estimate_tokens_hardware_max(tokens_per_gb=200_000) -> int
+
+      Internal Helpers:
+          - _run_nvidia_smi() -> tuple | None
 
 Imports:
   subprocess
@@ -626,6 +1165,12 @@ Classes:
     def get_memory_usage()
       (no method docstring)
     def get_gpu_usage()
+      (no method docstring)
+    def get_vram_total()
+      (no method docstring)
+    def get_vram_available()
+      (no method docstring)
+    def estimate_tokens_hardware_max(tokens_per_gb)
       (no method docstring)
     def get_vram_usage()
       (no method docstring)
@@ -684,18 +1229,52 @@ Classes:
 FILE: utils.py
 ------------------------------------------------------------
 Module Docstring:
-  Class: Utils
+  File: utils.py
   Author: MORS
   Date: 22 MAR 26
 
   Description:
-  Here the utility functions for interacting with the Ollama environment - i.e., find out which models are installed which version is running, etc.
-  This will be useful from the start  for  development and debugging purposes
+  Utility functions for interacting with the Ollama environment and providing
+  generic helpers that do not belong to any subsystem. Includes helpers for
+  conversation ID generation and model installation/removal. Stateless and
+  model-agnostic.
 
   Responsibilities:
-  - Small, generic helpers that do not belong to any subsystem
-  - No model logic
-  - No conversation logic
+      - Provide small, generic helper functions.
+      - Generate unique conversation IDs.
+      - Install and uninstall Ollama models.
+      - Avoid model logic, conversation logic, or persona logic.
+
+  Not Responsible For:
+      - Running models or generating responses.
+      - Managing conversation state or settings.
+      - Loading personas or context.
+      - Querying system telemetry (RuntimeMonitor).
+      - Dispatching commands or REPL behavior.
+
+  Public API Contract:
+
+      Static Methods:
+          - generate_conv_id()
+              Inputs: none
+              Outputs: str
+              Notes: Generates a timestamp-based unique conversation ID.
+
+          - install_ollama_model(model)
+              Inputs: model name (str)
+              Outputs: None or error string
+              Notes: Installs a model via the Ollama CLI.
+
+          - uninstall_ollama_model(model)
+              Inputs: model name (str)
+              Outputs: None or error string
+              Notes: Uninstalls a model via the Ollama CLI.
+
+      Instance Methods (placeholders):
+          - list_installed_models()
+          - get_model_info(model_name)
+          - get_ollama_version()
+          - ping_ollama()
 
 Imports:
   subprocess

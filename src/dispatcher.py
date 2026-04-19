@@ -60,8 +60,9 @@ Public API Contract:
     Parser Builders:
         - system_parserbuilder(cmdword)
         - conversation_parserbuilder(cmdword)
- 
+
 """
+
 import argparse
 import os
 import shlex
@@ -75,94 +76,67 @@ from runtime_monitor import RuntimeMonitor
 from utils import Utils as utils
 
 system_key_words = {
-    "get": 
-    { 
+    "get": {
         "description": "Displays information about the current model or conversation",
-        "args": 
-        [
-            {"flags": ["what"], "options": {"choices" : ["model", "conversation","temp"],"help": "Display information about the current conversation or model"}},
+        "args": [
+            {"flags": ["what"], "options": {"choices": ["model", "conversation", "temp"], "help": "Display information about the current conversation or model"}},
         ],
-        "handler": lambda args: system_display(args.what, args.conversation)
+        "handler": lambda args: system_display(args.what, args.conversation),
     },
-    
-    "set":
-    {
+    "set": {
         "description": "Change aspects of the current model or conversation",
-        "args": 
-        [
-            {"flags": ["what"], "options": {"choices" : ["model", "temp"], "help": "Change the model being used for the current conversation"}},
+        "args": [
+            {"flags": ["what"], "options": {"choices": ["model", "temp"], "help": "Change the model being used for the current conversation"}},
             {"flags": ["value"], "options": {"help": "The new value of the paramater"}},
         ],
-        "handler": lambda args: system_update(args.what, args.value, args.conversation)
+        "handler": lambda args: system_update(args.what, args.value, args.conversation),
     },
-
-    "show":
-    {
+    "show": {
         "description": "Show features from the Ollama CLI",
-        "args": 
-        [
-            {"flags": ["what"], "options": {"choices" : ["downloaded", "available", "running"], "help": "Show downloaded models, models available to download, and running models"}},
+        "args": [
+            {"flags": ["what"], "options": {"choices": ["downloaded", "available", "running"], "help": "Show downloaded models, models available to download, and running models"}},
         ],
-        "handler": lambda args: system_show_model_info(args.what)
+        "handler": lambda args: system_show_model_info(args.what),
     },
-
-    "install":
-    {
+    "install": {
         "description": "Download and install an AI model from the Ollama website",
-        "args": 
-        [
+        "args": [
             {"flags": ["what"], "options": {"help": "Downloads and installs a model through the Ollama CLI"}},
         ],
-        "handler": lambda args: system_install_model(args.what)
+        "handler": lambda args: system_install_model(args.what),
     },
-
-    "uninstall":
-    {
+    "uninstall": {
         "description": "Uninstalls an AI model from the local system",
-        "args": 
-        [
+        "args": [
             {"flags": ["what"], "options": {"help": "Uninstalls an installed model through the Ollama CLI"}},
         ],
-        "handler": lambda args: system_uninstall_model(args.what)
+        "handler": lambda args: system_uninstall_model(args.what),
     },
-
-    "stats": 
-    {
+    "stats": {
         "description": "Display system resource usage (CPU, memory, GPU, VRAM, or live feed)",
-        "args": 
-        [
-            {"flags": ["what"], "options": {"choices": ["cpu", "memory", "gpu", "vram", "all", "live"],"help": "Which system statistic(s) to display"}},
+        "args": [
+            {"flags": ["what"], "options": {"choices": ["cpu", "memory", "gpu", "vram", "all", "live"], "help": "Which system statistic(s) to display"}},
         ],
-    "handler": lambda args: system_show_stats(args.what)
+        "handler": lambda args: system_show_stats(args.what),
     },
-
-    "reset":
-    {
-        "description": "Resets the current conversation",
-        "args": [],
-        "handler": lambda args: ConversationManager.reset_conversation(args.conversation)
-    },
-
-    "help": {
-        "description": "Show a list of available commands",
-        "args": [],
-        "handler": lambda args: system_help_command()
-    },
+    "reset": {"description": "Resets the current conversation", "args": [], "handler": lambda args: ConversationManager.reset_conversation(args.conversation)},
+    "help": {"description": "Show a list of available commands", "args": [], "handler": lambda args: system_help_command()},
 }
+
 
 def system_dispatch(cmd, conversation):
     args = shlex.split(cmd)
     if not args:
         print("No system command given")
         return
-    
+
     keyword = args[0]
     tokens = args[1:]
 
     if keyword not in system_key_words.keys():
         print(f"Unown system command: {keyword}")
         return
-        
+
     cmdparser = system_parserbuilder(keyword)
 
     try:
@@ -171,7 +145,8 @@ def system_dispatch(cmd, conversation):
         system_key_words[keyword]["handler"](arguments)
     except SystemExit:
         pass
-    
+
+
 def system_display(attribute, conversation):
     if attribute == "model":
         print(ConversationManager.get_model(conversation))
@@ -182,6 +157,7 @@ def system_display(attribute, conversation):
     else:
         print(f"Unknown attribute: {attribute}")
 
+
 def system_update(attribute, value, conversation):
     if attribute == "model":
         ConversationManager.set_model(conversation, value)
@@ -189,6 +165,7 @@ def system_update(attribute, value, conversation):
         ConversationManager.set_temperature(conversation, value)
     else:
         print(f"Unknown attribute: {attribute}")
+
 
 def system_show_model_info(attribute):
     if attribute == "available":
@@ -198,18 +175,22 @@ def system_show_model_info(attribute):
     elif attribute == "running":
         print(ModelManager.get_running_models())
 
+
 def system_install_model(attribute):
-        utils.install_ollama_model(attribute)
-        print(ModelManager.get_downloaded_models())
+    utils.install_ollama_model(attribute)
+    print(ModelManager.get_downloaded_models())
+
 
 def system_uninstall_model(attribute):
-        utils.uninstall_ollama_model(attribute)
-        print(ModelManager.get_downloaded_models())
+    utils.uninstall_ollama_model(attribute)
+    print(ModelManager.get_downloaded_models())
+
 
 def system_help_command():
-    print ("Overview of Possible Commands")
+    print("Overview of Possible Commands")
     for cmd_word in system_key_words:
         print(f"{cmd_word} - ", system_key_words[cmd_word]["description"])
+
 
 def system_show_stats(attribute):
     if attribute == "cpu":
@@ -248,7 +229,7 @@ def system_show_stats(attribute):
             print("VRAM Usage: not available")
         else:
             print(f"VRAM: {vram['used']}MB / {vram['total']}MB {vram['percent']:.2f}%")
-    
+
     if attribute == "live":
         try:
             while True:
@@ -262,7 +243,7 @@ def system_show_stats(attribute):
 
 
 def system_parserbuilder(cmdword):
-    parser = argparse.ArgumentParser(prog = cmdword, add_help=False)
+    parser = argparse.ArgumentParser(prog=cmdword, add_help=False)
     parser.add_argument("-h", "--help", action="help", help="display this help message (program continues)")
     arg_definitions = system_key_words[cmdword]["args"]
     for arg_def in arg_definitions:
@@ -271,42 +252,34 @@ def system_parserbuilder(cmdword):
         parser.add_argument(*names, **metadata)
     return parser
 
+
 conversation_key_words = {
     "load": {
         "description": "Load a file into the conversation context",
-        "args": [
-            {"flags": ["path"], "options": {"help": "Path to the file to load"}}
-        ],
-        "handler": lambda args: load_file(args.conversation, args.path)
+        "args": [{"flags": ["path"], "options": {"help": "Path to the file to load"}}],
+        "handler": lambda args: load_file(args.conversation, args.path),
     },
-
     "load_dir": {
         "description": "Load a directory into the conversation context",
-        "args": [
-            {"flags": ["path"], "options": {"help": "Path to the directory to load"}}
-        ],
-        "handler": lambda args: load_directory(args.conversation, args.path)
+        "args": [{"flags": ["path"], "options": {"help": "Path to the directory to load"}}],
+        "handler": lambda args: load_directory(args.conversation, args.path),
     },
-
-    "help": {
-        "description": "Show a list of available conversation commands",
-        "args": [],
-        "handler": lambda args: conversation_help()
-    },
+    "help": {"description": "Show a list of available conversation commands", "args": [], "handler": lambda args: conversation_help()},
 }
+
 
 def conversation_dispatch(cmd, conversation):
     args = shlex.split(cmd)
     if not args:
         print("No conversation command given")
-        return
+        return None
 
     keyword = args[0]
     tokens = args[1:]
 
     if keyword not in conversation_key_words:
         print(f"Unknown conversation command: {keyword}")
-        return
+        return None
 
     parser = conversation_parserbuilder(keyword)
 
@@ -314,27 +287,44 @@ def conversation_dispatch(cmd, conversation):
         parsed = parser.parse_args(tokens)
         parsed.conversation = conversation
         conversation_key_words[keyword]["handler"](parsed)
+        return conversation_key_words[keyword]["handler"](parsed)
     except SystemExit:
-        # argparse already printed help or error
-        pass
-
+        return None
 
 # ---- handlers ----
-
 def load_file(conversation, path):
     try:
-        ContextLoader.file_to_context(conversation, path)
-        print(f"Loaded file into context: {path}")
+        if not ContextLoader.file_to_context(conversation, path):
+            print(f"[Dispatcher]: Unable to load file {path} into context")
+            return {"success": False, "user_message": f"Failed to load file: {path}", "model_prompt": None}
+
+        file_info = conversation.files.get(str(path))
+        size = file_info["size"] if file_info else "unknown"
+        chunks = len(file_info["chunks"]) if file_info else 1
+
+        user_msg = f"Loaded file: {path} ({size} bytes, {chunks} chunk(s))"
+        model_prompt = f"A new file has been loaded into context: {path}. Please acknowledge and incorporate it into your reasoning."
+        return {"success": True, "user_message": user_msg, "model_prompt": model_prompt}
+
     except Exception as e:
-        print(f"Error loading file: {e}")
+        return {"success": False, "user_message": f"Error loading file: {e}", "model_prompt": None}
 
 
 def load_directory(conversation, path):
     try:
-        ContextLoader.directory_to_context(conversation, path)
-        print(f"Loaded directory into context: {path}")
+        if not ContextLoader.directory_to_context(conversation, path):
+            print(f"[Dispatcher]: Unable to load directory {path} into context")
+            return {"success": False, "user_message": f"Failed to load directory: {path}", "model_prompt": None}
+
+        summary = conversation.files_directory_summary or "(no summary)"
+        file_count = len(conversation.files)
+
+        user_msg = f"Loaded directory: {path}\nFiles loaded: {file_count}"
+        model_prompt = f"A new directory has been loaded into context: {path}. It contains {file_count} files. Please acknowledge and incorporate the directory contents into your reasoning."
+        return {"success": True, "user_message": user_msg, "model_prompt": model_prompt}
+
     except Exception as e:
-        print(f"Error loading directory: {e}")
+        return {"success": False, "user_message": f"Error loading directory: {e}", "model_prompt": None}
 
 
 def conversation_help():
@@ -345,10 +335,10 @@ def conversation_help():
 
 # ---- parser builder ----
 
+
 def conversation_parserbuilder(cmdword):
     parser = argparse.ArgumentParser(prog=cmdword, add_help=False)
-    parser.add_argument("-h", "--help", action="help",
-                        help="display this help message (program continues)")
+    parser.add_argument("-h", "--help", action="help", help="display this help message (program continues)")
 
     arg_definitions = conversation_key_words[cmdword]["args"]
     for arg_def in arg_definitions:

@@ -1,5 +1,5 @@
 """
-FFile: cli.py
+File: cli.py
 Author: MORS
 Date: 20 Dec 25
 

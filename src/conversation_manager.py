@@ -142,6 +142,21 @@ class ConversationManager:
     def get_conversation_info(conversation):
         return str(conversation)
 
+    # Returns model_name, model_settings, persona/context components, assembled messages, metadata
+    @staticmethod
+    def get_full_context(conversation):
+        return {
+            "persona_components": {
+                "persona_name": conversation.persona_name,
+                "persona_dict": conversation.persona_dict,
+            },
+            "context_components": conversation.context_components,
+            "messages": ConversationManager.assemble_messages(conversation),
+            "model_settings": conversation.model_settings,
+            "directory_summary": conversation.files_directory_summary,
+            "files": list(conversation.files.keys()),
+        }
+
     # Using Ollama metadata to determine the model's max token - if  missing or malformed, default to 2048.
     @staticmethod
     def set_model_max_tokens(conversation):
@@ -161,3 +176,11 @@ class ConversationManager:
 
         except Exception:
             conversation.tokens_model_max = default_max
+
+    # After updating the context with files or other information, this is an automatic prompt that tells the model it has been updated
+    @staticmethod
+    def notify_context_updated(conversation, summary_text):
+        system_msg = MessageManager.build_system_message(summary_text)
+        MessageManager.append_message(conversation, system_msg)
+        conversation.updated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+

@@ -65,8 +65,6 @@ Public API Contract:
 
 from pathlib import Path
 
-from message_manager import MessageManager
-
 
 class ContextLoader:
     # Return a dict with the structure of the directory passed with by "path"
@@ -138,22 +136,11 @@ class ContextLoader:
         pass
 
     # Format the file's contents into a block readable by LLMs
-    @staticmethod
     def build_context_block(path, contents):
         file_path = Path(path)
 
-        if not file_path.exists() or not file_path.is_file() or not isinstance(contents, str) or not contents.strip():
-            return None
-
-        try:
-            clean_text = contents.strip()
-            context_block = f"=== FILE: {file_path} ===\n{clean_text}\n=== END FILE ==="
-
-            return {"path": str(file_path), "contents": context_block}
-
-        except Exception as e:
-            print(f"Error building context block: {e}")
-            return None
+        clean_text = contents.strip()
+        return f"=== FILE: {file_path} ===\n{clean_text}\n=== END FILE ==="
 
     #  Read a file, chunk it if necessary, format each chunk, and inject into the conversation as system messages
     @staticmethod
@@ -165,32 +152,23 @@ class ContextLoader:
             return False
 
         file_data = ContextLoader.read_file(file_path)
-        if file_data is None:
+        if not file_data:
             print(f"Could not read file: {file_path}")
             return False
+
+        contents = file_data["content"]
+        size = file_data["size"]
+
+        # Chunk if needed
+        if size > max_chunk_size:
+            chunks = ContextLoader.chunk_file(contents, max_chunk_size)
         else:
-            file_contents = file_data["content"]
-            file_size = file_data["size"]
+            chunks = [contents]
 
-        try:
-            if file_size <= max_chunk_size:
-                block = ContextLoader.build_context_block(file_path, file_contents)
-                if block:
-                    system_msg = {"role": "system", "content": block["contents"]}
-                    MessageManager.replace_system_message(conversation, system_msg)
-                return True
-            else:
-                chunks = ContextLoader.chunk_file(file_contents, max_chunk_size)
-                for chunk in chunks:
-                    block = ContextLoader.build_context_block(file_path, chunk)
-                    if block:
-                        system_msg = {"role": "system", "content": block["contents"]}
-                        MessageManager.replace_system_message(conversation, system_msg)
-            return True
+        conversation.files[str(file_path)] = {"size": size, "chunks": chunks}
 
-        except Exception as e:
-            print(f"Error loading file into conversation {e}")
-            return False
+        print(f"Loaded file into context: {file_path}")
+        return True
 
     #  Loading an entire directory structure into the context of a conversation
     @staticmethod
@@ -201,13 +179,48 @@ class ContextLoader:
             print(f"Invalid directory: {root}")
             return False
 
+        conversation.files = {}
+        summary_lines = [f"Directory: {root.resolve()}"]
+
         try:
             for file_path in root.rglob("*"):
-                if file_path.is_file():
-                    if file_path.suffix.lower() in {".py", ".txt", ".md"}:
-                        ContextLoader.file_to_context(conversation, file_path.as_posix(), max_chunk_size)
+                if file_path.is_file() and file_path.suffix.lower() in {".py", ".txt", ".md"}:
+                    rel = file_path.relative_to(root)
+                    summary_lines.append(f"  {rel}")
 
+                    # Load file contents
+                    file_data = ContextLoader.read_file(file_path)
+                    if not file_data:
+                        continue
+
+                    contents = file_data["content"]
+                    size = file_data["size"]
+
+                    # Chunk if needed
+                    if size > max_chunk_size:
+                        chunks = ContextLoader.chunk_file(contents, max_chunk_size)
+                    else:
+                        chunks = [contents]
+
+                    conversation.files[str(rel)] = {"size": size, "chunks": chunks}
+
+            header = summary_lines[0]
+            files = sorted(summary_lines[1:])
+
+            # Rebuild summary with clean formatting
+            pretty_summary = [header, ""]
+            pretty_summary.append("Files:")
+            for f in files:
+                pretty_summary.append(f"  - {f.strip()}")
+
+            conversation.files_directory_summary = "\n".join(pretty_summary)
+            conversation.context_components["directory_summary"] = conversation.files_directory_summary
+
+            print(f"Loaded directory {root} into context")
             return True
+
         except Exception as e:
             print(f"Error converting directory structure into blocks {e}")
             return False
+
+

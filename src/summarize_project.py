@@ -179,9 +179,10 @@ if __name__ == "__main__":
     summaries = summarize_directory(args.directory)
     formatted = format_summary(summaries)
 
-    if args.output:
-        with open(args.output, "w", encoding="utf-8") as f:
-            f.write(formatted)
-        print(f"Summary written to {args.output}")
-    else:
-        print(formatted)
+    # Always write summary into the target directory as project_summary.txt
+    output_path = os.path.join(args.directory, "project_summary.txt")
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(formatted)
+
+    print(f"Summary written to {output_path}")

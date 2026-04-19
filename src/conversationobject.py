@@ -87,6 +87,9 @@ class ConversationObject:
         self._title = None #(summary of the conversation)
         self._prompt_name = prompt_name
 
+        self.files = {}          # { "src/gui.py": {"size": 1234, "chunks": [chunk1, chunk2]} }
+        self.files_directory_summary = ""  # A formatted tree summary
+
         self.tokens_model_max = 0
         
     # -------------------------

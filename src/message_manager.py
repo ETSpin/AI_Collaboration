@@ -52,8 +52,12 @@ class MessageManager:
         prompt_prefix = context_components.get("prompt_prefix", "").strip()
         personality = context_components.get("personality", "").strip()
         rules = context_components.get("rules", "").strip()
+        directory_summary = context_components.get("directory_summary", "").strip()
 
-        content = f"{prompt_prefix}\n\n{personality}\n\nRules:\n{rules}"
+        if directory_summary:
+            content = f"\n\n[DIRECTORY SUMMARY]\n{directory_summary}"
+        else:
+            content = f"{prompt_prefix}\n\n{personality}\n\nRules:\n{rules}"
 
         return MessageManager.normalize_message({"role": "system", "content": content})
 

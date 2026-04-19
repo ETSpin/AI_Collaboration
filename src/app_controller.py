@@ -8,7 +8,7 @@ Coordinates the major subsystems (ModelRunner, ConversationManager, ContextManag
 FileGenerator, ThinkingDisplay) to keep main.py clean and maintainable. Provides a
 central lifecycle for creating, switching, and running conversations.
 
- Responsibilities (Post-Refactor):
+ Responsibilities:
    - Maintain a registry of all Conversation objects created during runtime.
    - Track which conversation is currently active.
    - Create new conversations via create_conversation().
@@ -160,7 +160,21 @@ class AppController:
 
             # Dash commands → conversation dispatcher
             if user_input.startswith("-"):
-                dispatcher.conversation_dispatch(user_input[1:], conv)
+                print("[AppController]: Dash Command fired")
+                result = dispatcher.conversation_dispatch(user_input[1:], conv)
+                if not result:
+                    continue
+                
+                # DEBUG: inspect GUI state
+                print("DEBUG: gui =", self.gui)
+                if self.gui is not None:
+                    print("DEBUG: gui.chat_display =", getattr(self.gui, "chat_display", None))    
+                
+                if result.get("user_message"):
+                    ConversationManager.notify_context_updated(conv, result["user_message"])
+                    self.update_chat_display(result["user_message"] + "\n")
+                if result.get("model_prompt"):
+                    self.force_model_acknowledgement(result["model_prompt"])
                 continue
 
             response_text = self.run_conversation_turn(user_input)
@@ -184,9 +198,7 @@ class AppController:
 
         conv_id = Utils.generate_conv_id()
         conversation.conversation_id = conv_id
-
         self.conversations[conv_id] = conversation
-
         return conv_id
 
     # Entry point for the application
@@ -202,6 +214,11 @@ class AppController:
 
         print(f"No conversation with id: {conv_id}")
         return False
+
+    # Helper function to ensure the model acknowledges context changes.
+    def force_model_acknowledgement(self, text):
+        response_text = self.run_conversation_turn(text)
+        self.update_chat_display(response_text + "\n")
 
     # This handles one turn of the conversation
     def run_conversation_turn(self, user_input):
@@ -274,7 +291,6 @@ class AppController:
             self.gui.chat_display.insert("end", text)
             self.gui.chat_display.see("end")
         else:
-            # CLI mode
             print(text, end="")
 
     # Optional: update the GUI thinking indicator during streaming output
@@ -288,7 +304,7 @@ class AppController:
             # CLI mode: do nothing (streaming not required)
             pass
 
-    # Persona loader from read personalities.json 
+    # Persona loader from read personalities.json
     def _load_personas(self):
         base_dir = os.path.dirname(__file__)
         personas_path = os.path.join(base_dir, "./personalities.json")
@@ -305,3 +321,114 @@ class AppController:
             return {}
 
         return data
+
+    # Return the full conversation context text - formatted
+    def get_active_conversation_context_text(self):
+        conv = self.active_conversation
+        if conv is None:
+            return "No active conversation"
+
+        context_dict = ConversationManager.get_full_context(conv)
+        return self.format_context_for_display(context_dict, conv)
+
+    # AI generated to help clean up the formatting for the Context Window -- what a mess
+    def format_context_for_display(self, context_dict, conv):
+        def section(title):
+            return f"--- {title} ---"
+
+        def fmt_dict(d, indent=4):
+            lines = []
+            pad = " " * indent
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    lines.append(f"{k}:")
+                    for sk, sv in v.items():
+                        lines.append(f"{pad}{sk}: {sv}")
+                else:
+                    lines.append(f"{k}: {v}")
+            return "\n".join(lines)
+
+        # Start building the output
+        out = []
+        out.append("=== MODEL CONTEXT ===")
+        out.append(f"Conversation ID: {conv.conversation_id}")
+        out.append(f"Persona: {conv.persona_name}")
+        out.append(f"Model: {conv.model_name}")
+        out.append("--------------------------\n")
+
+        # Model settings
+        out.append(section("Model Settings"))
+        out.append(fmt_dict(conv.model_settings))
+        out.append("")
+
+        # Persona components
+        persona = context_dict.get("persona_components", {})
+        persona_dict = persona.get("persona_dict", {})
+
+        out.append(section("Persona Components"))
+        out.append(f"Name: {persona_dict.get('name', '')}")
+        out.append(f"Model: {persona_dict.get('model', '')}")
+        out.append("")
+
+        if persona_dict.get("description"):
+            out.append("Description:")
+            out.append(persona_dict["description"])
+            out.append("")
+
+        if persona_dict.get("personality"):
+            out.append("Personality:")
+            out.append(persona_dict["personality"])
+            out.append("")
+
+        if persona_dict.get("defaults"):
+            out.append("Defaults:")
+            out.append(fmt_dict(persona_dict["defaults"], indent=6))
+            out.append("")
+
+        # Context components
+        out.append(section("Context Components"))
+        out.append(fmt_dict(context_dict.get("context_components", {})))
+        out.append("")
+
+        # --- Directory Summary ---
+        out.append("--- Directory Summary ---")
+        summary = context_dict.get("directory_summary", "")
+        if summary:
+            out.append(summary)
+        else:
+            out.append("(No directory loaded)")
+
+        # --- Loaded Files ---
+        out.append("\n--- Loaded Files ---")
+        files = context_dict.get("files", [])
+        if files:
+            for f in files:
+                out.append(f)
+        else:
+            out.append("(No files loaded)")
+
+        # --- File Contents ---
+        out.append("\n--- File Contents ---")
+        files_dict = conv.files  # direct access
+        if files_dict:
+            for filename, info in files_dict.items():
+                chunks = info["chunks"]
+                for i, chunk in enumerate(chunks):
+                    header = f"=== FILE: {filename} (chunk {i + 1}/{len(chunks)}) ==="
+                    footer = "=== END FILE ==="
+                    out.append(header)
+                    out.append(chunk)
+                    out.append(footer)
+        else:
+            out.append("(No file contents loaded)")
+
+        # Messages
+        out.append(section("Assembled Messages"))
+        for msg in context_dict.get("messages", []):
+            role = msg.get("role", "unknown")
+            content = msg.get("content", "")
+            out.append(f"{role}: {content}\n")
+
+        return "\n".join(out)
+
+
