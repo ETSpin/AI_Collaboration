@@ -69,32 +69,66 @@ from datetime import datetime, timezone
 
 class ConversationObject:
     # Represents a fully assembled conversational state at a single point in time.
-    def __init__(self, model_name, conversation_id=None, context_block=None, persona_name=None, persona_dict=None, model_settings=None, messages=None, context_components=None, prompt_name="AI agent:"):
+    def __init__(
+        self, model_name, conversation_id=None, context_block=None, persona_name=None, persona_dict=None, model_settings=None, messages=None, context_components=None, prompt_name="AI agent:"
+    ):
+        # -----------------------
+        # Model Info
+        # -----------------------
         self._model_name = model_name
-        self._conversation_id = conversation_id
         self._model_settings = model_settings if model_settings is not None else {}
-        
-        self.persona_name = persona_name
-        self.persona_dict = persona_dict
-
-        self.context_components = context_components or {}
-        
-        self._messages = messages if messages is not None else []
-        self._created_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-
-        self._updated_at = None
-        self._metadata = {}
-        self._title = None #(summary of the conversation)
+        self._tokens_model_max = 0
         self._prompt_name = prompt_name
 
-        self.files = {}          # { "src/gui.py": {"size": 1234, "chunks": [chunk1, chunk2]} }
-        self.files_directory_summary = ""  # A formatted tree summary
+        # -----------------------
+        # Identity / Meta Data
+        # -----------------------
+        self._conversation_id = conversation_id
+        self._created_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        self._updated_at = None
+        self._metadata = {}
+        self._title = None  # summary of the conversation
 
-        self.tokens_model_max = 0
-        
+        # -----------------------
+        # Context Info
+        # -----------------------
+        self._context_components = context_components or {}
+        self._context_block = context_block
+        self._persona_name = persona_name
+        self._persona_dict = persona_dict
+
+        # -----------------------
+        # Message Info
+        # -----------------------
+        self._messages = messages if messages is not None else []
+
+        # -----------------------
+        # File Info (ad hoc files / file metadata)
+        # -----------------------
+        self._files = {}
+        self._files_directory_summary = ""  # formatted tree summary
+
+        # -----------------------
+        # Embed Info (per-conversation embedding state)
+        # -----------------------
+        self._embed_location = None  # Path where embeddings for this conversation are stored (set lazily)
+        self._embed_manifest = {}  # filename -> file_hash (SHA256) for change detection
+        self._embed_files = []  # list of filenames currently embedded
+        self._embed_index_path = None  # explicit path to the FAISS (or backend) index file
+        self._embed_status = "not_built"  # one of: "not_built", "building", "ready", "error"
+        self._embed_last_built_at = 0.0  # epoch timestamp of last successful build
+        self._embed_chunk_size = 2048  # chunking parameters (persisted for determinism)
+        self._embed_chunk_overlap = 256
+        self._embed_backend = "faiss-cpu"  # backend identifier (e.g., "faiss-cpu")
+        self._embed_stats = {}  # quick stats: total_files, total_chunks, index_bytes, etc.
+        self._embed_lock_id = None  # lock token to avoid concurrent builds
+
     # -------------------------
     # Properties
     # -------------------------
+    # -----------------------
+    # Model Info
+    # -----------------------
     @property
     def model_name(self):
         return self._model_name
@@ -112,24 +146,12 @@ class ConversationObject:
         self._model_settings = value
 
     @property
-    def context_block(self):
-        return self._context_block
+    def tokens_model_max(self):
+        return self._tokens_model_max
 
-    @context_block.setter
-    def context_block(self, value):
-        self._context_block = value
-
-    @property
-    def messages(self):
-        return self._messages
-
-    @property
-    def conversation_id(self):
-        return self._conversation_id
-
-    @conversation_id.setter
-    def conversation_id(self, value):
-        self._conversation_id = value
+    @tokens_model_max.setter
+    def tokens_model_max(self, value):
+        self._tokens_model_max = value
 
     @property
     def prompt_name(self):
@@ -138,6 +160,17 @@ class ConversationObject:
     @prompt_name.setter
     def prompt_name(self, value):
         self._prompt_name = value
+
+    # -----------------------
+    # Identity / Meta Data
+    # -----------------------
+    @property
+    def conversation_id(self):
+        return self._conversation_id
+
+    @conversation_id.setter
+    def conversation_id(self, value):
+        self._conversation_id = value
 
     @property
     def created_at(self):
@@ -164,20 +197,168 @@ class ConversationObject:
         self._metadata = value
 
     @property
-    def token_count(self):
-        return self._token_count
-
-    @token_count.setter
-    def token_count(self, value):
-        self._token_count = value
-
-    @property
     def title(self):
         return self._title
 
     @title.setter
     def title(self, value):
         self._title = value
+
+    # -----------------------
+    # Context Info
+    # -----------------------
+    @property
+    def context_components(self):
+        return self._context_components
+
+    @context_components.setter
+    def context_components(self, value):
+        self._context_components = value
+
+    @property
+    def context_block(self):
+        return self._context_block
+
+    @context_block.setter
+    def context_block(self, value):
+        self._context_block = value
+
+    @property
+    def persona_name(self):
+        return self._persona_name
+
+    @persona_name.setter
+    def persona_name(self, value):
+        self._persona_name = value
+
+    @property
+    def persona_dict(self):
+        return self._persona_dict
+
+    @persona_dict.setter
+    def persona_dict(self, value):
+        self._persona_dict = value
+
+    # -----------------------
+    # Message Info
+    # -----------------------
+    @property
+    def messages(self):
+        return self._messages
+
+    @messages.setter
+    def messages(self, value):
+        self._messages = value
+
+    # -----------------------
+    # File Info
+    # -----------------------
+    @property
+    def files(self):
+        return self._files
+
+    @files.setter
+    def files(self, value):
+        self._files = value
+
+    @property
+    def files_directory_summary(self):
+        return self._files_directory_summary
+
+    @files_directory_summary.setter
+    def files_directory_summary(self, value):
+        self._files_directory_summary = value
+
+    # -----------------------
+    # Embed Info
+    # -----------------------
+    @property
+    def embed_location(self):
+        return self._embed_location
+
+    @embed_location.setter
+    def embed_location(self, value):
+        self._embed_location = value
+
+    @property
+    def embed_manifest(self):
+        return self._embed_manifest
+
+    @embed_manifest.setter
+    def embed_manifest(self, value):
+        self._embed_manifest = value
+
+    @property
+    def embed_files(self):
+        return self._embed_files
+
+    @embed_files.setter
+    def embed_files(self, value):
+        self._embed_files = value
+
+    @property
+    def embed_index_path(self):
+        return self._embed_index_path
+
+    @embed_index_path.setter
+    def embed_index_path(self, value):
+        self._embed_index_path = value
+
+    @property
+    def embed_status(self):
+        return self._embed_status
+
+    @embed_status.setter
+    def embed_status(self, value):
+        self._embed_status = value
+
+    @property
+    def embed_last_built_at(self):
+        return self._embed_last_built_at
+
+    @embed_last_built_at.setter
+    def embed_last_built_at(self, value):
+        self._embed_last_built_at = value
+
+    @property
+    def embed_chunk_size(self):
+        return self._embed_chunk_size
+
+    @embed_chunk_size.setter
+    def embed_chunk_size(self, value):
+        self._embed_chunk_size = value
+
+    @property
+    def embed_chunk_overlap(self):
+        return self._embed_chunk_overlap
+
+    @embed_chunk_overlap.setter
+    def embed_chunk_overlap(self, value):
+        self._embed_chunk_overlap = value
+
+    @property
+    def embed_backend(self):
+        return self._embed_backend
+
+    @embed_backend.setter
+    def embed_backend(self, value):
+        self._embed_backend = value
+
+    @property
+    def embed_stats(self):
+        return self._embed_stats
+
+    @embed_stats.setter
+    def embed_stats(self, value):
+        self._embed_stats = value
+
+    @property
+    def embed_lock_id(self):
+        return self._embed_lock_id
+
+    @embed_lock_id.setter
+    def embed_lock_id(self, value):
+        self._embed_lock_id = value
 
     # -------------------------
     # Helpers
@@ -200,9 +381,26 @@ class ConversationObject:
         for i, msg in enumerate(self._messages, start=1):
             role = msg.get("role", "unknown")
             content = msg.get("content", "")
-            preview = content if isinstance(content, str) and len(content) <= 80 else (
-                content[:77] + "..." if isinstance(content, str) else str(content)
-            )
+            preview = content if isinstance(content, str) and len(content) <= 80 else (content[:77] + "..." if isinstance(content, str) else str(content))
             lines.append(f"    {i}. {role}: {preview}")
-
         return "\n".join(lines)
+
+    # -----------------------
+    # Embed Helpers
+    # -----------------------
+
+    # Return the manifest path under embed_location or None if not set
+    def embed_manifest_path(self):
+        if not self._embed_location:
+            return None
+        return f"{self._embed_location.rstrip('/')}/manifest.json"
+
+    # Set embed_location (ConversationManager should ensure directory exists)
+    def set_embed_location(self, path: str):
+        self._embed_location = path
+
+    # Update manifest and embed_files list (data-only)
+    def update_embed_manifest(self, filename: str, file_hash: str):
+        self._embed_manifest[filename] = file_hash
+        if filename not in self.embed_files:
+            self._embed_files.append(filename)
