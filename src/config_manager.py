@@ -36,17 +36,13 @@ Static Methods:
   - None
 """
 
-from typing import Any, Dict
-
 
 class ConfigManager:
-    
-    
     # Initializes the ConfigManager with a path to a configuration file.
-    def __init__(self, path: str) -> None:
+    def __init__(self, path):
         self.path = path
-    
+
     # Loads configuration data from the specified file.
-    def load(self) -> Dict[str, Any]:
+    def load(self):
         # Placeholder implementation
         return {"config_path": self.path, "settings": None}

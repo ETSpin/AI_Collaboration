@@ -31,7 +31,7 @@ def main_gui():
     controller.gui = gui
 
     controller.start_new_conversation("pymetheus")
-    gui.update_context_panel()
+    gui.update_txt_context_panel()
     gui.slider_temp.set(controller.active_conversation.model_settings["temperature"])
     gui.update_persona_image(controller.active_conversation.model_settings["temperature"])
 

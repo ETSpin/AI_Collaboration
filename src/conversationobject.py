@@ -70,7 +70,7 @@ from datetime import datetime, timezone
 class ConversationObject:
     # Represents a fully assembled conversational state at a single point in time.
     def __init__(
-        self, model_name, conversation_id=None, context_block=None, persona_name=None, persona_dict=None, model_settings=None, messages=None, context_components=None, prompt_name="AI agent:"
+        self, model_name, conversation_id=None, context_block=None, persona_name=None, persona_dict=None, model_settings=None, messages=None, context_components=None, streaming=False, prompt_name="AI agent:"
     ):
         # -----------------------
         # Model Info
@@ -79,6 +79,7 @@ class ConversationObject:
         self._model_settings = model_settings if model_settings is not None else {}
         self._tokens_model_max = 0
         self._prompt_name = prompt_name
+        self._streaming_enabled = streaming
 
         # -----------------------
         # Identity / Meta Data
@@ -111,7 +112,7 @@ class ConversationObject:
         # -----------------------
         # Embed Info (per-conversation embedding state)
         # -----------------------
-        self._embed_location = None  # Path where embeddings for this conversation are stored (set lazily)
+        self._embed_location = f"./src/raw/{conversation_id}" # Path where embeddings for this conversation are stored (set lazily)
         self._embed_manifest = {}  # filename -> file_hash (SHA256) for change detection
         self._embed_files = []  # list of filenames currently embedded
         self._embed_index_path = None  # explicit path to the FAISS (or backend) index file
@@ -122,6 +123,9 @@ class ConversationObject:
         self._embed_backend = "faiss-cpu"  # backend identifier (e.g., "faiss-cpu")
         self._embed_stats = {}  # quick stats: total_files, total_chunks, index_bytes, etc.
         self._embed_lock_id = None  # lock token to avoid concurrent builds
+        self._embed_index = None
+        self._embed_chunks = []
+        self._embed_metadata = []
 
     # -------------------------
     # Properties
@@ -160,6 +164,10 @@ class ConversationObject:
     @prompt_name.setter
     def prompt_name(self, value):
         self._prompt_name = value
+
+    @property
+    def streaming_enabled(self):
+        return self._streaming_enabled
 
     # -----------------------
     # Identity / Meta Data
@@ -384,6 +392,12 @@ class ConversationObject:
             preview = content if isinstance(content, str) and len(content) <= 80 else (content[:77] + "..." if isinstance(content, str) else str(content))
             lines.append(f"    {i}. {role}: {preview}")
         return "\n".join(lines)
+
+    def enable_streaming(self):
+        self._streaming_enabled = True
+
+    def disable_streaming(self):
+        self._streaming_enabled = False
 
     # -----------------------
     # Embed Helpers

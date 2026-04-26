@@ -71,6 +71,7 @@ import time
 
 from context_loader import ContextLoader
 from conversation_manager import ConversationManager
+from embed_controller import EmbedController
 from model_manager import ModelManager
 from runtime_monitor import RuntimeMonitor
 from utils import Utils as utils
@@ -264,6 +265,11 @@ conversation_key_words = {
         "args": [{"flags": ["path"], "options": {"help": "Path to the directory to load"}}],
         "handler": lambda args: load_directory(args.conversation, args.path),
     },
+    "embed": {
+        "description": "Embed all files in a directory into the conversation's vector index",
+        "args": [{"flags": ["path"], "options": {"help": "Directory containing files to embed"}}],
+        "handler": lambda args: embed_directory(args.conversation, args.path),
+    },
     "help": {"description": "Show a list of available conversation commands", "args": [], "handler": lambda args: conversation_help()},
 }
 
@@ -290,6 +296,7 @@ def conversation_dispatch(cmd, conversation):
         return conversation_key_words[keyword]["handler"](parsed)
     except SystemExit:
         return None
+
 
 # ---- handlers ----
 def load_file(conversation, path):
@@ -331,6 +338,56 @@ def conversation_help():
     print("Conversation commands:")
     for cmd_word, meta in conversation_key_words.items():
         print(f"  {cmd_word} - {meta['description']}")
+
+
+def embed_directory(conversation, path):
+    try:
+        if not os.path.isdir(path):
+            print(f"[Embed]: Directory not found: {path}")
+            return {"success": False, "user_message": f"Directory not found: {path}", "model_prompt": None}
+
+        # Collect files (non-recursive)
+        file_paths = []
+        for name in os.listdir(path):
+            full_path = os.path.join(path, name)
+            if os.path.isfile(full_path):
+                file_paths.append(full_path)
+
+        if not file_paths:
+            return {"success": False, "user_message": f"No files found in {path}", "model_prompt": None}
+
+        print(f"[Embed]: Building embeddings for {len(file_paths)} files...")
+
+        # Build index (Option C: full rebuild every time)
+        index, chunks, metadata = EmbedController.build_index(file_paths)
+
+        # Store in conversation object
+        conversation._embed_index = index
+        conversation._embed_chunks = chunks
+        conversation._embed_metadata = metadata
+        conversation._embed_status = "ready"
+
+        # Set embed location (not used yet)
+        conversation._embed_location = f"./src/raw/{conversation._conversation_id}"
+        conversation._embed_files = file_paths
+        conversation._embed_stats = {
+            "total_files": len(file_paths),
+            "total_chunks": len(chunks),
+            "index_type": "faiss.IndexFlatIP",
+        }
+        conversation._embed_chunk_size = 500
+        conversation._embed_chunk_overlap = 50
+        conversation._embed_backend = "faiss-cpu"
+        conversation._embed_last_built_at = time.time()
+        conversation._embed_index_path = None
+
+        user_msg = f"Embedded {len(file_paths)} files from {path}"
+        model_prompt = f"Embedding complete. {len(chunks)} chunks are now available for retrieval."
+
+        return {"success": True, "user_message": user_msg, "model_prompt": model_prompt}
+
+    except Exception as e:
+        return {"success": False, "user_message": f"Error embedding directory: {e}", "model_prompt": None}
 
 
 # ---- parser builder ----

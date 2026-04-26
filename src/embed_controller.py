@@ -4,26 +4,52 @@ Author: MORS
 Date: 20 APR 26
 
 Description:
-
+    Provides a stateless embedding pipeline for converting project files (.txt, .py, .pdf) into semantic vector representations using the
+    nomic-embed-text model via Ollama (hard coded). Supports chunking, embedding,  FAISS index construction, and similarity search.
 
 Responsibilities:
-
+    - Read supported file types and extract text content
+    - Chunk text into overlapping token windows
+    - Generate embeddings for all chunks
+    - Normalize and store vectors in a FAISS index
+    - Perform semantic similarity search against the index
+    - Produce metadata describing file, chunk index, token count, and page number
+    - Provide hashing utilities for change detection
 
 Not Responsible For:
-
+    - Persisting embeddings or metadata to disk
+    - Incremental rebuild logic or manifest management
+    - File watching or directory monitoring
+    - Error handling beyond minimal structural correctness
+    - Application-level orchestration or UI integration
 
 Public API Contract:
 
   Functions:
+    build_index(file_paths, chunk_size=500, overlap=50, embed_model="nomic-embed-text")
+        → Returns (faiss_index, chunks, metadata)
 
+    search(query, index, chunks, metadata, top_k=5)
+        → Returns ranked list of matching chunks with similarity scores
 
 Static Methods:
+    file_hash(text)
+        → Hashes extracted text (legacy)
 
+    file_hash_from_path(file_path)
+        → Hashes raw file bytes for robust change detection
 
+    embed_text(texts, model="nomic-embed-text", batch_size=16)
+        → Embeds list of text chunks and returns float32 numpy array
+
+    get_chunks_for_files(text, max_tokens=500, overlap=50)
+        → Splits text into overlapping token chunks
+
+    add_chunks(all_chunks, all_metadata, chunks, file_path, page=None)
+        → Appends chunk text and metadata to master lists
 """
 
 import hashlib
-import json
 import os
 
 import faiss
@@ -34,10 +60,18 @@ from PyPDF2 import PdfReader
 
 
 class EmbedController:
-    # Hashing method for file checking -- has it changed or not
+    # Hashthe extracted text -- works for .txt files, not with .pdf or images
     @staticmethod
     def file_hash(text):
         return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    # Better Hashing method - Hashes the raw file bytes, should work for all file types
+    @staticmethod
+    def file_hash_from_path(file_path):
+        hasher = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            hasher.update(f.read())
+        return hasher.hexdigest()
 
     # Build FAISS index with metadata
     @staticmethod
@@ -70,23 +104,13 @@ class EmbedController:
         index.add(vectors)
         return index, all_chunks, all_metadata
 
-    @staticmethod
-    def file_needs_embedding(self, filename, file_hash):
-        meta_path = os.path.join(self.embedding_dir, f"{filename}.json")
-        if not os.path.exists(meta_path):
-            return True
-        meta = json.load(open(meta_path, "r"))
-        return meta.get("file_hash") != file_hash
-
     # Generate embeddings for a list of texts - uses the get_chunks_for_files() method
     @staticmethod
-    def embed_text(texts, model="nomic-embed-text", batch_size=16):
+    def embed_text(texts, model="nomic-embed-text"):
         vectors = []
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i : i + batch_size]
-            resp = Ollama.embeddings(model=model, input=batch)
-            for item in resp["embeddings"]:
-                vectors.append(item["embedding"])
+        for txt in texts:
+            resp = Ollama.embeddings(model=model, prompt=txt)
+            vectors.append(resp["embedding"])
         return np.array(vectors, dtype="float32")
 
     # Search the FAISS vector database for the most similar chunks - returns the text and metadata; Need to research this more
@@ -111,7 +135,7 @@ class EmbedController:
     # Split text into overlapping token chunks
     @staticmethod
     def get_chunks_for_files(text, max_tokens=500, overlap=50):
-        encoding = tiktoken.encoding_for_model("cl100k_base")
+        encoding = tiktoken.get_encoding("cl100k_base")
         tokens = encoding.encode(text)
         chunks = []
         stride = max_tokens - overlap
@@ -135,6 +159,16 @@ class EmbedController:
             if page is not None:
                 meta["page"] = page
             all_metadata.append(meta)
+
+    # Hashthe extracted text -- works for .txt files, not with .pdf or images
+    @staticmethod
+    def file_hash(text):
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    # Placeholder for future incremental rebuild logic
+    @staticmethod
+    def file_needs_embedding(filename, file_hash):
+        pass
 
     def invalidate_file(self, filename):
         pass

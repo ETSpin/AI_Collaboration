@@ -57,6 +57,7 @@ import json
 from datetime import datetime, timezone
 
 from conversationobject import ConversationObject
+from embed_controller import EmbedController
 from message_manager import MessageManager
 from model_manager import ModelManager
 from model_runner import ModelRunner
@@ -117,9 +118,34 @@ class ConversationManager:
     def run_model(conversation):
         model = conversation.model_name
         settings = conversation.model_settings
-        messages = ConversationManager.assemble_messages(conversation)
-        response = ModelRunner.run_conversation(model, messages, settings)
 
+        # Get the last user message (the query)
+        last_user_msg = conversation.messages[-1]["content"]
+
+        # Check for retrieval context
+        retrieval_block = ConversationManager.build_retrieval_context(conversation, last_user_msg)
+        if retrieval_block:
+            retrieval_msg = MessageManager.build_file_context_block(f"[RETRIEVED CONTEXT]\n\n{retrieval_block}")
+            MessageManager.inject_context_block(conversation, retrieval_msg)
+
+        messages = ConversationManager.assemble_messages(conversation)
+
+        # # DIAGNOSTIC PRINT OF MESSAGES
+        print("[Conversation Manager]: FINAL MESSAGE LIST - ")
+        for m in messages:
+            preview = m["content"].replace("\n", " ")[:200]
+            print(f"{m['role']}: {preview}")
+
+        if conversation.streaming_enabled:
+            print("[Conversation Manager]: Streaming mode enabled, querying the model")
+
+            return ModelRunner.stream_partial_output(
+                model=model,
+                messages=messages,
+                settings=settings,
+            )
+
+        response = ModelRunner.run_conversation(model, messages, settings)
         return response
 
     # Return the model name for this conversation
@@ -179,8 +205,32 @@ class ConversationManager:
 
     # After updating the context with files or other information, this is an automatic prompt that tells the model it has been updated
     @staticmethod
-    def notify_context_updated(conversation, summary_text):
-        system_msg = MessageManager.build_system_message(summary_text)
-        MessageManager.append_message(conversation, system_msg)
+    def notify_context_updated(conversation, context_components):
+        print(f"[Conversation Manager]: notify_context_updated has fired with {context_components}")
+        new_system_msg = MessageManager.build_system_message(context_components)
+        MessageManager.replace_system_message(conversation, new_system_msg)
         conversation.updated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
+    # If there is embedded data, builds the prompt to take that into account
+    @staticmethod
+    def build_retrieval_context(conversation, query):
+        index = conversation._embed_index
+        chunks = conversation._embed_chunks
+        metadata = conversation._embed_metadata
+
+        if index is None:
+            return None
+
+        results = EmbedController.search(query, index, chunks, metadata)
+
+        if not results:
+            return None
+
+        # Build a formatted retrieval block
+        context_lines = []
+        for r in results:
+            context_lines.append(f"[{r['metadata']}]")
+            context_lines.append(r["text"])
+            context_lines.append("")
+
+        return "\n".join(context_lines)

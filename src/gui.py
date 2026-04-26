@@ -45,7 +45,7 @@ Public API Contract:
             Outputs: none
             Notes: Constructs all GUI widgets and places them on the canvas.
 
-        - on_button_1_click()
+        - on_btn_userquery_click()
             Inputs: none
             Outputs: none
             Notes: Captures user input, routes commands, updates chat display.
@@ -60,7 +60,7 @@ Public API Contract:
             Outputs: none
             Notes: Renders a drift-proof persona frame with glow effects.
 
-        - update_context_panel()
+        - update_txt_context_panel()
             Inputs: none
             Outputs: none
             Notes: Refreshes metadata panel with conversation ID, persona, model, and settings.
@@ -97,9 +97,11 @@ class Gui:
         self.frames = self.load_frames()
 
         self._create_widgets()
-
-        # Initialize persona image at temp = 0.0
         self.update_persona_image(0.0)
+
+        # Streaming window information
+        self.streaming_window = None
+        self.streaming_text_widget = None
 
     # ============================================================
     # LOAD INDIVIDUAL FRAME FILES
@@ -130,15 +132,14 @@ class Gui:
         # LEFT SIDE — CHAT + INPUT
         # ============================
 
-        self.chat_display = tk.Text(self.root, font=("Arial", 12), wrap="word", bg="#ffffff", fg="#000000")
-        self.chat_display.place(x=10, y=20, width=870, height=1220)
+        self.txt_chat_display = tk.Text(self.root, font=("Arial", 12), wrap="word", bg="#ffffff", fg="#000000")
+        self.txt_chat_display.place(x=10, y=20, width=870, height=1220)
 
-        self.entry_1 = tk.Text(self.root, font=("Arial", 12), bg="#ffffff", fg="#000000", wrap="word")
-        self.entry_1.place(x=10, y=1260, width=740, height=120)
-        # self.entry_1.insert(0, "Enter text...")
+        self.txt_userinput = tk.Text(self.root, font=("Arial", 12), bg="#ffffff", fg="#000000", wrap="word")
+        self.txt_userinput.place(x=10, y=1260, width=740, height=120)
 
-        self.button_1 = tk.Button(self.root, text="Button", font=("Arial", 12), command=self.on_button_1_click)
-        self.button_1.place(x=760, y=1260, width=120, height=120)
+        self.btn_userquery = tk.Button(self.root, text="Button", font=("Arial", 12), command=self.btn_userquery_click)
+        self.btn_userquery.place(x=760, y=1260, width=120, height=120)
 
         # ============================
         # RIGHT COLUMN — AI CONTROL STACK
@@ -170,16 +171,16 @@ class Gui:
         self.label_2 = tk.Label(self.root, text="System Prompt:", font=("Arial", 12), anchor="w")
         self.label_2.place(x=RIGHT_X, y=410, width=120, height=30)
 
-        self.combobox_2 = ttk.Combobox(self.root, values=["Option 1", "Option 2", "Option 3"], state="readonly")
-        self.combobox_2.place(x=RIGHT_X + 130, y=410, width=230, height=30)
-        self.combobox_2.current(0)
+        self.cmb_systemprompt = ttk.Combobox(self.root, values=["Option 1", "Option 2", "Option 3"], state="readonly")
+        self.cmb_systemprompt.place(x=RIGHT_X + 130, y=410, width=230, height=30)
+        self.cmb_systemprompt.current(0)
 
         self.label_1 = tk.Label(self.root, text="Mode:", font=("Arial", 12), anchor="w")
         self.label_1.place(x=RIGHT_X, y=450, width=120, height=30)
 
-        self.combobox_1 = ttk.Combobox(self.root, values=["Option 1", "Option 2", "Option 3"], state="readonly")
-        self.combobox_1.place(x=RIGHT_X + 130, y=450, width=230, height=30)
-        self.combobox_1.current(0)
+        self.cmb_mode = ttk.Combobox(self.root, values=["Option 1", "Option 2", "Option 3"], state="readonly")
+        self.cmb_mode.place(x=RIGHT_X + 130, y=450, width=230, height=30)
+        self.cmb_mode.current(0)
 
         # --------------------------------
         # 3. SYSTEM PROMPT PANEL
@@ -196,14 +197,27 @@ class Gui:
         self.label_context = tk.Label(self.root, text="Context / Metadata", font=("Arial", 14, "bold"), anchor="w")
         self.label_context.place(x=RIGHT_X, y=780, width=RIGHT_W, height=30)
 
-        self.textarea_3 = tk.Text(self.root, font=("Arial", 12), wrap="word", bg="#ffffff", fg="#000000")
-        self.textarea_3.place(x=RIGHT_X, y=820, width=RIGHT_W, height=260)
+        self.txt_contextpanel = tk.Text(self.root, font=("Arial", 12), wrap="word", bg="#ffffff", fg="#000000")
+        self.txt_contextpanel.place(x=RIGHT_X, y=820, width=RIGHT_W, height=260)
 
         # --------------------------------
-        # 5. SHOW CONTEXT BUTTON
+        # 5. CONTEXT + STREAMING BUTTON ROW
         # --------------------------------
+        BTN_Y = 1090
+        BTN_H = 40
+
+        # Show Context (left half)
         self.btn_show_context = tk.Button(self.root, text="Show Context", font=("Arial", 12, "bold"), command=self.open_context_window)
-        self.btn_show_context.place(x=RIGHT_X, y=1090, width=RIGHT_W, height=40)
+        self.btn_show_context.place(x=RIGHT_X, y=BTN_Y, width=RIGHT_W // 2, height=BTN_H)
+
+        # Streaming (right half)
+        self.btn_streaming = tk.Button(
+            self.root,
+            text="Streaming",
+            font=("Arial", 12, "bold"),
+            command=self.open_streaming_window,  # you will implement this in Step B
+        )
+        self.btn_streaming.place(x=RIGHT_X + RIGHT_W // 2, y=BTN_Y, width=RIGHT_W // 2, height=BTN_H)
 
         # --------------------------------
         # 6. NOTES / FUTURE TOOLS PANEL (smaller)
@@ -211,8 +225,8 @@ class Gui:
         self.label_notes = tk.Label(self.root, text="Notes / Future Tools", font=("Arial", 14, "bold"), anchor="w")
         self.label_notes.place(x=RIGHT_X, y=1140, width=RIGHT_W, height=30)
 
-        self.textarea_4 = tk.Text(self.root, font=("Arial", 12), wrap="word", bg="#ffffff", fg="#000000")
-        self.textarea_4.place(x=RIGHT_X, y=1180, width=RIGHT_W, height=210)
+        self.txt_notespanel = tk.Text(self.root, font=("Arial", 12), wrap="word", bg="#ffffff", fg="#000000")
+        self.txt_notespanel.place(x=RIGHT_X, y=1180, width=RIGHT_W, height=210)
 
     # ============================================================
     # UPDATE PERSONA IMAGE (NO DRIFT VERSION)
@@ -260,14 +274,14 @@ class Gui:
     # ============================================================
     # BUTTON HANDLER
     # ============================================================
-    def on_button_1_click(self):
-        text = self.entry_1.get("1.0", "end").strip()
-        self.entry_1.delete("1.0", "end")
+    def btn_userquery_click(self):
+        text = self.txt_userinput.get("1.0", "end").strip()
+        self.txt_userinput.delete("1.0", "end")
 
         # NEW: route commands BEFORE anything else
         if text.startswith("/"):
             system_dispatch(text[1:], self.controller.active_conversation)
-            self.update_context_panel()
+            self.update_txt_context_panel()
             return
 
         if text.startswith("-"):
@@ -278,30 +292,30 @@ class Gui:
 
             if result.get("user_message"):
                 ConversationManager.notify_context_updated(self.controller.active_conversation, self.controller.active_conversation.context_components)
-                self.chat_display.insert("end", result["user_message"] + "\n")
-                self.chat_display.see("end")
+                self.txt_chat_display.insert("end", result["user_message"] + "\n")
+                self.txt_chat_display.see("end")
 
             if result.get("model_prompt"):
                 response = self.controller.run_conversation_turn(result["model_prompt"])
                 persona = self.controller.active_conversation.persona_dict.get("name", "AI")
-                self.chat_display.insert("end", f"{persona}: {response}\n\n")
-                self.chat_display.see("end")
+                self.txt_chat_display.insert("end", f"{persona}: {response}\n\n")
+                self.txt_chat_display.see("end")
 
-            self.update_context_panel()
+            self.update_txt_context_panel()
             return
 
         persona = self.controller.active_conversation.persona_dict.get("name", "AI")
 
-        self.chat_display.insert("end", f"User: {text}\n")
+        self.txt_chat_display.insert("end", f"User: {text}\n")
         response = self.controller.run_conversation_turn(text)
-        self.chat_display.insert("end", f"{persona}: {response}\n\n")
-        self.chat_display.insert("end", "──────────────────────────────\n\n")
-        self.chat_display.see("end")
+        self.txt_chat_display.insert("end", f"{persona}: {response}\n\n")
+        self.txt_chat_display.insert("end", "──────────────────────────────\n\n")
+        self.txt_chat_display.see("end")
 
-        self.update_context_panel()
+        self.update_txt_context_panel()
 
     # update the context panel based on the conversation
-    def update_context_panel(self):
+    def update_txt_context_panel(self):
         if self.controller and self.controller.active_conversation:
             conv = self.controller.active_conversation
 
@@ -312,14 +326,13 @@ class Gui:
             context_text.append(f"Model max tokens: {conv.tokens_model_max}")
 
             settings = conv.model_settings
-
             context_text.append(f"Current num_ctx: {settings.get('num_ctx')}")
             context_text.append(f"Current temperature: {settings.get('temperature')}")
             context_text.append(f"Current top_p: {settings.get('top_p')}")
             context_text.append(f"Current repeat penalty: {settings.get('repeat_penalty')}")
 
-            self.textarea_3.delete("1.0", "end")
-            self.textarea_3.insert("end", "\n".join(context_text))
+            self.txt_contextpanel.delete("1.0", "end")
+            self.txt_contextpanel.insert("end", "\n".join(context_text))
 
     # Update the persona graphic and slider bar based on the conversation
     def on_temp_change(self, value):
@@ -329,7 +342,7 @@ class Gui:
         if self.controller and self.controller.active_conversation:
             conv = self.controller.active_conversation
             conv.model_settings["temperature"] = temp
-            self.update_context_panel()
+            self.update_txt_context_panel()
 
     # ============================================================
     # MULTI-WINDOW HANDLING
@@ -428,6 +441,56 @@ class Gui:
         tk.Button(button_frame, text="TBD", width=15).pack(side="left", padx=10)
         tk.Button(button_frame, text="TBD", width=15).pack(side="left", padx=10)
         tk.Button(button_frame, text="Close", width=15, command=win.destroy).pack(side="right", padx=10)
+
+    def open_streaming_window(self):
+        conv = self.controller.active_conversation
+        if not conv:
+            return
+
+        # If the windo is already open, bring it to the front
+        if self.streaming_window and tk.Toplevel.winfo_exists(self.streaming_window):
+            self.streaming_window.lift()
+            return
+
+        conv.enable_streaming() # Enable streaming mode in the conversation class
+
+        # Create the window
+        win_streaming = tk.Toplevel(self.root)
+        win_streaming.title("Streaming Output")
+        win_streaming.geometry("900x1410")
+        self.streaming_window = win_streaming
+
+        # When user closes the window
+        def on_close():
+            conv.disable_streaming()
+            self.streaming_window = None
+            self.streaming_text_widget = None
+            win_streaming.destroy()
+
+        win_streaming.protocol("WM_DELETE_WINDOW", on_close)
+
+        # --- TEXT AREA ---
+        frame = tk.Frame(win_streaming)
+        frame.pack(fill="both", expand=True)
+
+        scrollbar = tk.Scrollbar(frame)
+        scrollbar.pack(side="right", fill="y")
+
+        text_widget = tk.Text(frame, wrap="word", font=("Consolas", 11), yscrollcommand=scrollbar.set)
+        text_widget.pack(fill="both", expand=True)
+        scrollbar.config(command=text_widget.yview)
+
+        # Store reference for streaming updates
+        self.streaming_text_widget = text_widget
+
+        # Optional: initial message
+        text_widget.insert("end", "[Streaming window opened]\n")
+        text_widget.see("end")
+
+    def streaming_append(self, text):
+        if self.streaming_text_widget:
+            self.streaming_text_widget.insert("end", text)
+            self.streaming_text_widget.see("end")
 
 
 if __name__ == "__main__":

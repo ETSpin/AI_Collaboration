@@ -164,12 +164,12 @@ class AppController:
                 result = dispatcher.conversation_dispatch(user_input[1:], conv)
                 if not result:
                     continue
-                
+
                 # DEBUG: inspect GUI state
                 print("DEBUG: gui =", self.gui)
                 if self.gui is not None:
-                    print("DEBUG: gui.chat_display =", getattr(self.gui, "chat_display", None))    
-                
+                    print("DEBUG: gui.chat_display =", getattr(self.gui, "chat_display", None))
+
                 if result.get("user_message"):
                     ConversationManager.notify_context_updated(conv, result["user_message"])
                     self.update_chat_display(result["user_message"] + "\n")
@@ -253,9 +253,9 @@ class AppController:
         conversation = self.conversations[conv_id]
         response = ConversationManager.run_model(conversation)
         ConversationManager.add_ai_response(conversation, response)
-        self.update_chat_display(f"{response.message.content}\n")
-        self.gui.chat_display.insert("end", "──────────────────────────────\n\n")
-        self.gui.chat_display.see("end")
+        self.update_txt_chat_display(f"{response.message.content}\n")
+        self.gui.txt_chat_display.insert("end", "──────────────────────────────\n\n")
+        self.gui.txt_chat_display.see("end")
 
     # Create and start a new conversation
     def start_new_conversation(self, persona_name):
@@ -286,10 +286,10 @@ class AppController:
         }
 
     # Update the chat display with the response from the model - enables CLI or GUI
-    def update_chat_display(self, text, window_id=None):
+    def update_txt_chat_display(self, text, window_id=None):
         if self.gui is not None:
-            self.gui.chat_display.insert("end", text)
-            self.gui.chat_display.see("end")
+            self.gui.txt_chat_display.insert("end", text)
+            self.gui.txt_chat_display.see("end")
         else:
             print(text, end="")
 
@@ -348,24 +348,31 @@ class AppController:
                     lines.append(f"{k}: {v}")
             return "\n".join(lines)
 
-        # Start building the output
         out = []
+
+        # ============================================================
+        # HEADER
+        # ============================================================
         out.append("=== MODEL CONTEXT ===")
         out.append(f"Conversation ID: {conv.conversation_id}")
         out.append(f"Persona: {conv.persona_name}")
         out.append(f"Model: {conv.model_name}")
-        out.append("--------------------------\n")
+        out.append("")
 
-        # Model settings
+        # ============================================================
+        # MODEL SETTINGS
+        # ============================================================
         out.append(section("Model Settings"))
         out.append(fmt_dict(conv.model_settings))
         out.append("")
 
-        # Persona components
+        # ============================================================
+        # PERSONA
+        # ============================================================
         persona = context_dict.get("persona_components", {})
         persona_dict = persona.get("persona_dict", {})
 
-        out.append(section("Persona Components"))
+        out.append(section("Persona"))
         out.append(f"Name: {persona_dict.get('name', '')}")
         out.append(f"Model: {persona_dict.get('model', '')}")
         out.append("")
@@ -385,50 +392,72 @@ class AppController:
             out.append(fmt_dict(persona_dict["defaults"], indent=6))
             out.append("")
 
-        # Context components
+        # ============================================================
+        # CONTEXT COMPONENTS
+        # ============================================================
         out.append(section("Context Components"))
         out.append(fmt_dict(context_dict.get("context_components", {})))
         out.append("")
 
-        # --- Directory Summary ---
-        out.append("--- Directory Summary ---")
+        # ============================================================
+        # DIRECTORY SUMMARY
+        # ============================================================
+        out.append(section("Directory Summary"))
         summary = context_dict.get("directory_summary", "")
-        if summary:
-            out.append(summary)
-        else:
-            out.append("(No directory loaded)")
+        out.append(summary if summary else "(No directory loaded)")
+        out.append("")
 
-        # --- Loaded Files ---
-        out.append("\n--- Loaded Files ---")
+        # ============================================================
+        # LOADED FILES (filenames only)
+        # ============================================================
+        out.append(section("Loaded Files"))
         files = context_dict.get("files", [])
         if files:
             for f in files:
                 out.append(f)
         else:
             out.append("(No files loaded)")
+        out.append("")
 
-        # --- File Contents ---
-        out.append("\n--- File Contents ---")
-        files_dict = conv.files  # direct access
-        if files_dict:
-            for filename, info in files_dict.items():
-                chunks = info["chunks"]
-                for i, chunk in enumerate(chunks):
-                    header = f"=== FILE: {filename} (chunk {i + 1}/{len(chunks)}) ==="
-                    footer = "=== END FILE ==="
-                    out.append(header)
-                    out.append(chunk)
-                    out.append(footer)
+        # ============================================================
+        # EMBEDDINGS
+        # ============================================================
+        out.append(section("Embeddings"))
+
+        # out.append(f"Status: {conv.embed_status}")
+        # out.append(f"Backend: {conv.embed_backend}")
+        out.append(f"Index Path: {conv.embed_index_path}")
+        out.append(f"Location: {conv.embed_location}")
+        out.append(f"Last Built: {conv.embed_last_built_at}")
+        # out.append(f"Chunk Size: {conv.embed_chunk_size}")
+        # out.append(f"Chunk Overlap: {conv.embed_chunk_overlap}")
+
+        if conv.embed_files:
+            out.append("Files Embedded:")
+            for f in conv.embed_files:
+                out.append(f"  {f}")
         else:
-            out.append("(No file contents loaded)")
+            out.append("Files Embedded: (none)")
 
-        # Messages
-        out.append(section("Assembled Messages"))
-        for msg in context_dict.get("messages", []):
-            role = msg.get("role", "unknown")
-            content = msg.get("content", "")
-            out.append(f"{role}: {content}\n")
+        if conv.embed_stats:
+            out.append("Stats:")
+            out.append(fmt_dict(conv.embed_stats, indent=6))
+        else:
+            out.append("Stats: (none)")
+
+        out.append("")
+
+        # ============================================================
+        # SYSTEM MESSAGES ONLY
+        # ============================================================
+        out.append(section("System Messages"))
+        messages = context_dict.get("messages", [])
+        system_msgs = [m for m in messages if m.get("role") == "system"]
+
+        if system_msgs:
+            for m in system_msgs:
+                out.append(m.get("content", "").strip() + "\n")
+        else:
+            out.append("(No system messages)\n")
 
         return "\n".join(out)
-
-
